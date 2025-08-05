@@ -1,5 +1,5 @@
 package lk.ijse.spring.propos.entity;
 
 public enum Role {
-    USER, ADMIN
+    STOCK_KEEPER, ADMIN, CASHIER
 }

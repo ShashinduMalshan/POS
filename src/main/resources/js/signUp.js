@@ -1,17 +1,50 @@
-// Theme switching functionality - identical to previous version
+// Theme switching functionality with jQuery
 function initializeTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    document.querySelector('#theme-toggle-btn i').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    $('html').attr('data-theme', savedTheme);
+    $('#theme-toggle-btn i').attr('class', savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon');
 }
+
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const currentTheme = $('html').attr('data-theme');
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', newTheme);
+    $('html').attr('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
-    document.querySelector('#theme-toggle-btn i').className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    $('#theme-toggle-btn i').attr('class', newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon');
 }
-document.addEventListener('DOMContentLoaded', () => {
+
+$(document).ready(function () {
     initializeTheme();
-    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+    $('#theme-toggle-btn').on('click', toggleTheme);
+
+    //signUp Process
+
+    $('#signupForm').on('submit', function (event){
+        const fullname = $('#fullname').val().trim();
+        const email = $('#email').val().trim();
+        const role = $('#role').val().toUpperCase();
+        const password = $('#password').val();
+
+        console.log(fullname, email, role, password);
+
+        $.ajax({
+            url: 'http://localhost:8080/auth/register',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: fullname,
+                emailAddress: email,
+                role: role,
+                password: password
+            }),
+            success: function (response) {
+                console.log("Registration Successful: ", response)
+            },
+            error: function (xhr) {
+                console.log('Registration failed: ', xhr.responseText);
+            }
+        })
+
+    })
+
 });
