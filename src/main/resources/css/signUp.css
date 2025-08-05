@@ -1,0 +1,97 @@
+/* All CSS is identical to the previous version for consistency */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root {
+    --primary-hue: 195; --primary-sat: 70%;
+    --primary: hsl(var(--primary-hue), var(--primary-sat), 45%);
+    --primary-light: hsl(var(--primary-hue), var(--primary-sat), 94%);
+    --text-primary: #1f2937; --text-secondary: #4b5563;
+    --bg-main: #f3f4f6; --bg-panel: #ffffff;
+    --border-color: #e5e7eb; --border-color-strong: #d1d5db;
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --radius: 0.5rem;
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-theme="dark"] {
+    --primary-sat: 75%;
+    --primary: hsl(var(--primary-hue), var(--primary-sat), 55%);
+    --primary-light: hsla(var(--primary-hue), var(--primary-sat), 55%, 0.1);
+    --text-primary: #f3f4f6; --text-secondary: #9ca3af;
+    --bg-main: #111827; --bg-panel: #1f2937;
+    --border-color: #374151; --border-color-strong: #4b5563;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-main); color: var(--text-primary); line-height: 1.5; min-height: 100vh; transition: background-color var(--transition), color var(--transition); display: flex; align-items: center; justify-content: center; }
+.auth-container { width: 100%; max-width: 900px; min-height: 600px; display: flex; background: var(--bg-panel); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; position: relative; }
+.branding-panel { flex: 1; background: linear-gradient(45deg, hsl(var(--primary-hue), var(--primary-sat), 40%), hsl(var(--primary-hue), var(--primary-sat), 55%)); padding: 2rem; color: white; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.branding-logo { display: flex; align-items: center; gap: 0.75rem; font-size: 1.5rem; font-weight: 700; z-index: 2;}
+.branding-logo i { font-size: 1.5rem; }
+.branding-text { z-index: 2; }
+.branding-text h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+.branding-text p { font-size: 1rem; opacity: 0.8; }
+.animated-shapes { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;}
+.shape { position: absolute; background: rgba(255, 255, 255, 0.1); border-radius: var(--radius); animation: float 20s infinite linear; }
+.shape1 { width: 120px; height: 120px; top: 10%; left: 15%; animation-duration: 22s; }
+.shape2 { width: 80px; height: 80px; top: 70%; left: 60%; animation-duration: 18s; animation-delay: 2s; }
+.shape3 { width: 40px; height: 40px; top: 40%; left: 80%; animation-duration: 25s; }
+.shape4 { width: 60px; height: 60px; top: 80%; left: 5%; animation-duration: 15s; animation-delay: 1s;}
+@keyframes float { 0% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-20px) rotate(180deg); } 100% { transform: translateY(0) rotate(360deg); } }
+.form-panel { flex: 1; padding: 2rem; display: flex; flex-direction: column; justify-content: center; }
+.form-header { margin-bottom: 2rem; text-align: center; }
+.form-header h2 { font-size: 1.75rem; color: var(--text-primary); margin-bottom: 0.5rem; }
+.form-header p { color: var(--text-secondary); }
+.form-group { margin-bottom: 1.25rem; }
+.form-label { display: block; font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.5rem; }
+.input-wrapper { position: relative; }
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid var(--border-color-strong);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: var(--bg-main);
+    color: var(--text-primary);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+/* Match select placeholder to input placeholder styling */
+.form-input option[disabled] {
+    color: #6b7280;
+    font-style: normal;
+    opacity: 0.6;
+}
+.form-input:invalid {
+    color: #6b7280;
+    opacity: 0.6;
+}
+.form-input:valid {
+    color: var(--text-primary);
+    opacity: 1;
+}
+
+.input-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); color: var(--border-color-strong); transition: var(--transition); }
+.form-input:focus + .input-icon { color: var(--primary); }
+/* Down arrow for select */
+.select-wrapper::after {
+    content: '\f078';
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--border-color-strong);
+}
+.submit-btn { width: 100%; padding: 0.875rem; border: none; border-radius: var(--radius); background: var(--primary); color: white; font-weight: 600; font-size: 1rem; cursor: pointer; transition: var(--transition); margin-top: 0.5rem; }
+.submit-btn:hover { background: hsl(var(--primary-hue), var(--primary-sat), 40%); transform: translateY(-2px); }
+.form-footer { text-align: center; font-size: 0.875rem; color: var(--text-secondary); margin-top: 1.5rem;}
+.form-link { font-size: 0.875rem; color: var(--primary); text-decoration: none; font-weight: 500; }
+.form-link:hover { text-decoration: underline; }
+.theme-switcher { position: absolute; top: 1rem; right: 1rem; }
+.theme-switcher button { background: var(--bg-main); border: 1px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer; transition: var(--transition); color: var(--text-secondary); }
+.theme-switcher button:hover { border-color: var(--primary); color: var(--primary); }
+@media (max-width: 768px) { .branding-panel { display: none; } .auth-container { flex-direction: column; max-width: 400px; min-height: auto; } .form-panel { padding: 2rem 1.5rem; } }

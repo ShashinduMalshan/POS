@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - ProPOS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="css/signUp.css">
+</head>
+<body>
+<div class="auth-container">
+  <div class="branding-panel">
+    <div class="animated-shapes">
+      <div class="shape shape1"></div>
+      <div class="shape shape2"></div>
+      <div class="shape shape3"></div>
+      <div class="shape shape4"></div>
+    </div>
+    <div class="branding-logo">
+      <i class="fas fa-cash-register"></i>
+      <span>ProPOS</span>
+    </div>
+    <div class="branding-text">
+      <h1>Join the Future of Retail</h1>
+      <p>Create your account to start streamlining your business today.</p>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="theme-switcher">
+      <button id="theme-toggle-btn" title="Toggle Theme"><i class="fas fa-sun"></i></button>
+    </div>
+
+    <div class="form-header">
+      <h2>Create Account</h2>
+      <p>Fill in the details below to get started.</p>
+    </div>
+
+    <form action="#">
+      <div class="form-group">
+        <label for="fullname" class="form-label">Full Name</label>
+        <div class="input-wrapper">
+          <input type="text" id="fullname" class="form-input" placeholder="Jane Doe" required>
+          <i class="input-icon fas fa-user"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <div class="input-wrapper">
+          <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
+          <i class="input-icon fas fa-envelope"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="role" class="form-label">Assign Role</label>
+        <div class="input-wrapper select-wrapper">
+          <select id="role" class="form-input" required>
+            <option value="" disabled selected>Select a role...</option>
+            <option value="cashier">Cashier</option>
+            <option value="stock_keeper">Stock Keeper</option>
+            <option value="admin">Admin</option>
+          </select>
+          <i class="input-icon fas fa-user-tag"></i>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+          <i class="input-icon fas fa-lock"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Create Account</button>
+    </form>
+
+    <div class="form-footer">
+      <p>Already have an account? <a href="sign-in.html" class="form-link">Sign In</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="js/signUp.js"></script>
+</body>
+</html>

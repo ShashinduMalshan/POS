@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced POS System - Pro+</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="css/system.css">
+</head>
+<body>
+<div id="notification-container"></div>
+<div class="app-container">
+  <header class="header">
+    <div class="logo"><div class="logo-icon"><i class="fas fa-cash-register"></i></div><span>ProPOS</span></div>
+    <div class="header-actions">
+      <button class="header-action-btn" onclick="openCustomerModal()"><i class="fas fa-users"></i> Customers</button>
+      <button class="header-action-btn" onclick="openItemModal()"><i class="fas fa-box-archive"></i> Inventory</button>
+      <button class="header-action-btn" onclick="openOrderHistoryModal()"><i class="fas fa-history"></i> Order History</button>
+    </div>
+    <div class="user-menu">
+      <div class="theme-switcher"><button id="theme-toggle-btn" title="Toggle Theme"><i class="fas fa-sun"></i></button></div>
+      <div class="user-avatar" title="Jane Doe">JD</div>
+    </div>
+  </header>
+  <main class="main-content">
+    <div class="search-container">
+      <div class="search-wrapper"><div class="search-icon"><i class="fas fa-search"></i></div><input type="text" class="search-input" placeholder="Search products..." onkeyup="filterProducts(this.value)"></div>
+    </div>
+    <div class="products-grid" id="productsGrid"></div>
+  </main>
+  <aside class="bill-panel">
+    <div class="panel-header"><h2 class="panel-title">Current Order</h2></div>
+    <div class="panel-body">
+      <div class="customer-selection-area"><label for="customerSelect" class="form-label">Assign Customer</label><select class="customer-select" id="customerSelect" onchange="selectCustomer()"><option value="">Walk-in Customer</option></select></div>
+      <div class="customer-info" id="selectedCustomerInfo"></div>
+      <div class="bill-items" id="billItems">
+        <div class="empty-cart"><div class="empty-cart-icon"><i class="fas fa-shopping-cart"></i></div><div>Your cart is empty</div></div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <div class="bill-summary">
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+        <div class="summary-row"><span>Tax (8.5%)</span><span id="tax">$0.00</span></div>
+        <div class="summary-row summary-total"><span>Total</span><span id="total">$0.00</span></div>
+      </div>
+      <button class="checkout-btn" id="checkoutBtn" disabled onclick="processCheckout()"><i class="fas fa-credit-card"></i><span>Process Payment</span></button>
+    </div>
+  </aside>
+</div>
+<div class="modal-overlay hidden" id="customerModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="customerModalTitle">Add New Customer</h2><button class="modal-close-btn" onclick="closeCustomerModal()"><i class="fas fa-times"></i></button></div><div class="modal-body"><div class="modal-form"><input type="hidden" id="editingCustomerId"><div class="image-preview-container"><img src="https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg" alt="Avatar Preview" class="image-preview" id="customerImagePreview"><input type="file" id="customerPhotoInput" class="hidden" accept="image/*" onchange="previewImage(this, 'customerImagePreview')"><button type="button" class="btn-upload" onclick="document.getElementById('customerPhotoInput').click()">Choose Photo</button></div><div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="customerNameInput" placeholder="Enter full name"></div><div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="customerEmailInput" placeholder="customer@example.com"></div><div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="customerPhoneInput" placeholder="+1 (555) 123-4567"></div><div class="form-actions"><button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button><button class="btn btn-secondary" onclick="clearCustomerForm()">Clear</button></div></div><div class="modal-list"><table><thead><tr><th colspan="2">Customer</th><th>Contact</th><th>Actions</th></tr></thead><tbody id="customerTableBody"></tbody></table></div></div></div></div>
+<div class="modal-overlay hidden" id="itemModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="itemModalTitle">Add New Item</h2><button class="modal-close-btn" onclick="closeItemModal()"><i class="fas fa-times"></i></button></div><div class="modal-body"><div class="modal-form"><input type="hidden" id="editingItemId"><div class="image-preview-container"><img src="https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg" alt="Item Preview" class="image-preview" id="itemImagePreview"><input type="file" id="itemPhotoInput" class="hidden" accept="image/*" onchange="previewImage(this, 'itemImagePreview')"><button type="button" class="btn-upload" onclick="document.getElementById('itemPhotoInput').click()">Choose Image</button></div><div class="form-group"><label class="form-label">Product Name</label><input type="text" class="form-input" id="itemNameInput" placeholder="Enter product name"></div><div class="form-group"><label class="form-label">Price</label><input type="number" class="form-input" id="itemPriceInput" placeholder="0.00" step="0.01"></div><div class="form-group"><label class="form-label">Stock</label><input type="number" class="form-input" id="itemStockInput" placeholder="0" step="1"></div><div class="form-actions"><button class="btn btn-primary" onclick="saveItem()">Save Item</button><button class="btn btn-secondary" onclick="clearItemForm()">Clear</button></div></div><div class="modal-list"><table><thead><tr><th colspan="2">Item</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="itemTableBody"></tbody></table></div></div></div></div>
+<div class="modal-overlay hidden" id="orderHistoryModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title">Order History</h2><button class="modal-close-btn" onclick="closeOrderHistoryModal()"><i class="fas fa-times"></i></button></div><div class="modal-body" style="grid-template-columns: 1fr; padding-top: 0;"><div class="modal-list"><table id="orderHistoryTable"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead><tbody></tbody></table></div></div></div></div>
+
+<!-- Payment Drawer -->
+<div class="payment-drawer-overlay" id="paymentDrawer">
+  <div class="payment-drawer">
+    <div class="payment-drawer-handle" onclick="closePaymentDrawer()"></div>
+    <div class="payment-drawer-header">
+      <h2 class="payment-drawer-title">Process Payment</h2>
+      <p class="payment-drawer-subtitle">Select payment method and complete transaction</p>
+    </div>
+    <div class="payment-drawer-body">
+      <!-- Bill Summary -->
+      <div class="payment-bill-summary">
+        <div class="payment-bill-row">
+          <span class="payment-bill-label">Subtotal</span>
+          <span class="payment-bill-value" id="paymentSubtotal">$0.00</span>
+        </div>
+        <div class="payment-bill-row">
+          <span class="payment-bill-label">Tax (8.5%)</span>
+          <span class="payment-bill-value" id="paymentTax">$0.00</span>
+        </div>
+        <div class="payment-bill-row">
+          <span class="payment-bill-label">Total Amount</span>
+          <span class="payment-bill-value payment-total-value" id="paymentTotal">$0.00</span>
+        </div>
+      </div>
+
+      <!-- Payment Methods -->
+      <div class="payment-methods">
+        <h3 class="payment-methods-title">Payment Method</h3>
+        <div class="payment-method-grid">
+          <div class="payment-method-btn" onclick="selectPaymentMethod('cash')">
+            <div class="payment-method-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="payment-method-name">Cash</div>
+          </div>
+          <div class="payment-method-btn" onclick="selectPaymentMethod('card')">
+            <div class="payment-method-icon"><i class="fas fa-credit-card"></i></div>
+            <div class="payment-method-name">Card</div>
+          </div>
+          <div class="payment-method-btn" onclick="selectPaymentMethod('digital')">
+            <div class="payment-method-icon"><i class="fas fa-mobile-alt"></i></div>
+            <div class="payment-method-name">Digital</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Payment Section -->
+      <div class="cash-payment-section" id="cashPaymentSection">
+        <div class="cash-input-group">
+          <label class="cash-input-label">Amount Received</label>
+          <input type="number" class="cash-input" id="cashAmountInput" placeholder="0.00" step="0.01" oninput="calculateChange()">
+        </div>
+        <div class="quick-cash-amounts">
+          <button class="quick-cash-btn" onclick="setQuickCash(20)">$20</button>
+          <button class="quick-cash-btn" onclick="setQuickCash(50)">$50</button>
+          <button class="quick-cash-btn" onclick="setQuickCash(100)">$100</button>
+          <button class="quick-cash-btn" onclick="setExactAmount()">Exact</button>
+          <button class="quick-cash-btn" onclick="setQuickCash(200)">$200</button>
+          <button class="quick-cash-btn" onclick="clearCashInput()">Clear</button>
+        </div>
+        <div class="change-display" id="changeDisplay">
+          <div class="change-amount" id="changeAmount">$0.00</div>
+          <div class="change-label">Change Due</div>
+        </div>
+      </div>
+
+      <!-- Payment Actions -->
+      <div class="payment-actions">
+        <button class="payment-action-btn secondary" onclick="closePaymentDrawer()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button class="payment-action-btn primary" id="completePaymentBtn" onclick="completePayment()" disabled>
+          <i class="fas fa-check"></i> Complete Payment
+        </button>
+      </div>
+    </div>
+
+    <!-- Success Animation -->
+    <div class="payment-success" id="paymentSuccess">
+      <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="success-message">Payment Successful!</div>
+      <div class="success-details" id="successDetails">Transaction completed</div>
+    </div>
+  </div>
+</div>
+
+<script src="js/system.js"></script>
+</body>
+</html>
