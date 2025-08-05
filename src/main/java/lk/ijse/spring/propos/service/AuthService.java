@@ -30,7 +30,7 @@ public class AuthService {
             throw new BadCredentialsException("Invalid credentials");
         }
         // generate token
-        String token=jwtUtil.generateToken(authDTO.username);
+        String token=jwtUtil.generateToken(authDTO.username, user.getRole().name());
         return new AuthResponseDTO(token);
     }
     // register user

@@ -16,9 +16,10 @@ public class JWTUtil {
     @Value("${jwt.secretKey}")
     private String secretKey;
 
-    public String generateToken(String username){
+    public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(
                         System.currentTimeMillis() + expiration))
