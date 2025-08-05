@@ -1,84 +1,3 @@
-// $(document).ready(function() {
-//     console.log("✅ jQuery is working!");
-// });
-//
-// function initializeTheme() {
-//     const savedTheme = localStorage.getItem('theme') || 'light';
-//     $('html').attr('data-theme', savedTheme);
-//     $('#theme-toggle-btn i').attr('class', savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon');
-// }
-//
-// function toggleTheme() {
-//     const currentTheme = $('html').attr('data-theme');
-//     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-//     $('html').attr('data-theme', newTheme);
-//     localStorage.setItem('theme', newTheme);
-//     $('#theme-toggle-btn i').attr('class', newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon');
-// }
-//
-// $(document).ready(function() {
-//     initializeTheme();
-//     $('#theme-toggle-btn').on('click', toggleTheme);
-// });
-//
-// //--> Start to communicate with backend <--//
-//
-// function parseJwt(token) {
-//     const base64Url = token.split('.')[1];
-//     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-//     const jsonPayload = decodeURIComponent(
-//         atob(base64).split('').map(function(c) {
-//             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-//         }).join('')
-//     );
-//     return JSON.parse(jsonPayload);
-// }
-//
-// $(document).ready(function (){
-//     $('form').on('submit', function (event) {
-//         event.preventDefault();
-//
-//         const email = $('#email').val();
-//         const password = $('#password').val();
-//
-//         console.log("📧 Email: ", email);
-//         console.log("🔐 Password: ", password);
-//
-//         $.ajax({
-//             url: 'http://localhost:8080/auth/login',
-//             method: 'POST',
-//             contentType: 'application/json',
-//             data: JSON.stringify({
-//                 username: email,
-//                 password: password
-//             }),
-//             success: function (response) {
-//
-//                 const token = response.data.accessToken;
-//                 localStorage.setItem("jwtToken", token);
-//
-//                 const payload = parseJwt(token);
-//                 const role = payload?.role;
-//
-//                 console.log("👤 User Role:", role);
-//
-//                 if (role === "ADMIN") {
-//                     alert('Log as Admin')
-//                 } else {
-//                     alert('log as User')
-//                     //window.location.href = "user-dashboard.html";
-//                 }
-//
-//                 window.location.href = 'http://localhost:63342/ProPOS/static/dashboard.html';
-//             },
-//             error: function (xhr) {
-//                 console.log("❌ Login failed: ", xhr.responseText);
-//                 alert("Invalid credentials or error logging in.");
-//             }
-//         });
-//     });
-// });
-
 $(document).ready(function() {
     console.log("✅ jQuery is working!");
 });
@@ -174,7 +93,7 @@ function showLoginSuccess(role) {
     setTimeout(() => {
         successMsg.fadeOut(300, () => {
             successMsg.remove();
-            window.location.href = 'dashboard.html'; // Updated to point to the new dashboard
+            window.location.href = 'http://localhost:63342/ProPOS/system.html'; // Updated to point to the new dashboard
         });
     }, 2000);
 }
