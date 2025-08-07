@@ -23,32 +23,32 @@ $(document).ready(function() {
 
 //--> Start to communicate with backend <--//
 
-function parseJwt(token) {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-            atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join('')
-        );
-        return JSON.parse(jsonPayload);
-    } catch (error) {
-        console.error('❌ Error parsing JWT:', error);
-        return null;
-    }
-}
-
-// Add loading state management
-function showLoginLoading(show = true) {
-    const submitBtn = $('input[type="submit"], button[type="submit"]');
-    if (show) {
-        submitBtn.prop('disabled', true).val('Signing in...');
-    } else {
-        submitBtn.prop('disabled', false).val('Sign In');
-    }
-}
-
+// function parseJwt(token) {
+//     try {
+//         const base64Url = token.split('.')[1];
+//         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+//         const jsonPayload = decodeURIComponent(
+//             atob(base64).split('').map(function(c) {
+//                 return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+//             }).join('')
+//         );
+//         return JSON.parse(jsonPayload);
+//     } catch (error) {
+//         console.error('❌ Error parsing JWT:', error);
+//         return null;
+//     }
+// }
+//
+// // Add loading state management
+// function showLoginLoading(show = true) {
+//     const submitBtn = $('input[type="submit"], button[type="submit"]');
+//     if (show) {
+//         submitBtn.prop('disabled', true).val('Signing in...');
+//     } else {
+//         submitBtn.prop('disabled', false).val('Sign In');
+//     }
+// }
+//
 // Add success animation
 function showLoginSuccess(role) {
     // Create a temporary success message
@@ -98,104 +98,200 @@ function showLoginSuccess(role) {
     }, 2000);
 }
 
-$(document).ready(function() {
-    $('form').on('submit', function(event) {
-        event.preventDefault();
+// $(document).ready(function() {
+//     $('form').on('submit', function(event) {
+//         event.preventDefault();
+//
+//         const email = $('#email').val();
+//         const password = $('#password').val();
+//
+//         if (!email || !password) {
+//             alert('Please fill in all fields.');
+//             return;
+//         }
+//
+//         console.log("📧 Email: ", email);
+//         console.log("🔐 Password: ", password);
+//
+//         showLoginLoading(true);
+//
+//         $.ajax({
+//             url: 'http://localhost:8080/auth/login',
+//             method: 'POST',
+//             contentType: 'application/json',
+//             data: JSON.stringify({
+//                 username: email,
+//                 password: password
+//             }),
+//             success: function(response) {
+//                 showLoginLoading(false);
+//
+//                 const token = response.data.accessToken;
+//                 localStorage.setItem("jwtToken", token);
+//
+//                 const payload = parseJwt(token);
+//                 if (!payload) {
+//                     alert("Invalid token received from server.");
+//                     return;
+//                 }
+//
+//                 const role = payload?.role;
+//                 console.log("👤 User Role:", role);
+//
+//                 // Instead of alerts, show success animation
+//                 showLoginSuccess(role);
+//             },
+//             error: function(xhr) {
+//                 showLoginLoading(false);
+//                 console.log("❌ Login failed: ", xhr.responseText);
+//
+//                 let errorMessage = "Invalid credentials or error logging in.";
+//
+//                 // Try to parse error response for better user feedback
+//                 try {
+//                     const errorResponse = JSON.parse(xhr.responseText);
+//                     if (errorResponse.message) {
+//                         errorMessage = errorResponse.message;
+//                     }
+//                 } catch (e) {
+//                     // Use default error message
+//                 }
+//
+//                 // Show error with better styling
+//                 const errorDiv = $(`
+//                     <div style="
+//                         position: fixed;
+//                         top: 20px;
+//                         right: 20px;
+//                         background: linear-gradient(135deg, #ef4444, #dc2626);
+//                         color: white;
+//                         padding: 15px 20px;
+//                         border-radius: 10px;
+//                         box-shadow: 0 5px 20px rgba(239, 68, 68, 0.3);
+//                         z-index: 1000;
+//                         font-weight: 500;
+//                         animation: errorSlideIn 0.3s ease;
+//                     ">
+//                         <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+//                         ${errorMessage}
+//                     </div>
+//                     <style>
+//                         @keyframes errorSlideIn {
+//                             from {
+//                                 transform: translateX(100%);
+//                                 opacity: 0;
+//                             }
+//                             to {
+//                                 transform: translateX(0);
+//                                 opacity: 1;
+//                             }
+//                         }
+//                     </style>
+//                 `);
+//
+//                 $('body').append(errorDiv);
+//
+//                 // Remove error message after 5 seconds
+//                 setTimeout(() => {
+//                     errorDiv.fadeOut(300, () => errorDiv.remove());
+//                 }, 5000);
+//             }
+//         });
+//     });
+// });
+
+let accessToken = null; // Keep in memory only
+
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            atob(base64).split('').map(c =>
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join('')
+        );
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Error parsing token", e);
+        return null;
+    }
+}
+
+function login(email, password) {
+    return $.ajax({
+        url: 'http://localhost:8080/auth/login',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ username: email, password: password }),
+        xhrFields: { withCredentials: true }, // to receive cookies
+    }).then(res => {
+        accessToken = res.accessToken;
+        console.log("✅ Logged in. Token:", accessToken);
+        const payload = parseJwt(accessToken);
+        console.log("🔐 Role:", payload?.role);
+        return payload?.role;
+    }).catch(err => {
+        alert("Login failed: " + (err.responseJSON?.message || "Invalid credentials"));
+        throw err;
+    });
+}
+
+function refreshAccessToken() {
+    return $.ajax({
+        url: 'http://localhost:8080/auth/refresh',
+        method: 'POST',
+        xhrFields: { withCredentials: true },
+    }).then(res => {
+        accessToken = res.accessToken;
+        console.log("♻️ Token refreshed:", accessToken);
+    }).catch(err => {
+        console.warn("❌ Refresh failed, please login again.");
+        alert("Session expired. Please sign in again.");
+        window.location.href = '/login.html';
+    });
+}
+
+function authFetch(url, method = 'GET', data = null) {
+    return $.ajax({
+        url,
+        method,
+        contentType: 'application/json',
+        data: data ? JSON.stringify(data) : null,
+        beforeSend: function (xhr) {
+            if (accessToken) xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+        },
+        xhrFields: { withCredentials: true }
+    }).fail(async function (xhr) {
+        if (xhr.status === 401) {
+            console.warn("⚠️ Token expired, trying refresh...");
+            await refreshAccessToken();
+            return authFetch(url, method, data); // Retry after refresh
+        } else {
+            console.error("❌ Auth failed:", xhr);
+            throw xhr;
+        }
+    });
+}
+
+// Handle login form
+$(document).ready(function () {
+    $('#signinForm').on('submit', async function (e) {
+        e.preventDefault();
 
         const email = $('#email').val();
         const password = $('#password').val();
 
         if (!email || !password) {
-            alert('Please fill in all fields.');
+            alert("Please fill in all fields");
             return;
         }
 
-        console.log("📧 Email: ", email);
-        console.log("🔐 Password: ", password);
-
-        showLoginLoading(true);
-
-        $.ajax({
-            url: 'http://localhost:8080/auth/login',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                username: email,
-                password: password
-            }),
-            success: function(response) {
-                showLoginLoading(false);
-
-                const token = response.data.accessToken;
-                localStorage.setItem("jwtToken", token);
-
-                const payload = parseJwt(token);
-                if (!payload) {
-                    alert("Invalid token received from server.");
-                    return;
-                }
-
-                const role = payload?.role;
-                console.log("👤 User Role:", role);
-
-                // Instead of alerts, show success animation
-                showLoginSuccess(role);
-            },
-            error: function(xhr) {
-                showLoginLoading(false);
-                console.log("❌ Login failed: ", xhr.responseText);
-
-                let errorMessage = "Invalid credentials or error logging in.";
-
-                // Try to parse error response for better user feedback
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    if (errorResponse.message) {
-                        errorMessage = errorResponse.message;
-                    }
-                } catch (e) {
-                    // Use default error message
-                }
-
-                // Show error with better styling
-                const errorDiv = $(`
-                    <div style="
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        background: linear-gradient(135deg, #ef4444, #dc2626);
-                        color: white;
-                        padding: 15px 20px;
-                        border-radius: 10px;
-                        box-shadow: 0 5px 20px rgba(239, 68, 68, 0.3);
-                        z-index: 1000;
-                        font-weight: 500;
-                        animation: errorSlideIn 0.3s ease;
-                    ">
-                        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
-                        ${errorMessage}
-                    </div>
-                    <style>
-                        @keyframes errorSlideIn {
-                            from {
-                                transform: translateX(100%);
-                                opacity: 0;
-                            }
-                            to {
-                                transform: translateX(0);
-                                opacity: 1;
-                            }
-                        }
-                    </style>
-                `);
-
-                $('body').append(errorDiv);
-
-                // Remove error message after 5 seconds
-                setTimeout(() => {
-                    errorDiv.fadeOut(300, () => errorDiv.remove());
-                }, 5000);
-            }
-        });
+        try {
+            const role = await login(email, password);
+            showLoginSuccess(role); // your existing animation
+        } catch (e) {
+            console.error("Login error", e);
+        }
     });
 });

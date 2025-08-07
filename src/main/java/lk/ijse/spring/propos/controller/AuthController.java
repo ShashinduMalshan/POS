@@ -4,15 +4,17 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lk.ijse.spring.propos.dto.APIResponse;
 import lk.ijse.spring.propos.dto.AuthDTO;
+import lk.ijse.spring.propos.dto.AuthResponseDTO;
 import lk.ijse.spring.propos.dto.RegisterDTO;
 import lk.ijse.spring.propos.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:63342")
+@CrossOrigin(origins = "http://localhost:63342", allowCredentials = "true")
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -30,36 +32,27 @@ public class AuthController {
                 )
         );
     }
-//    @PostMapping("/login")
-//    public ResponseEntity<APIResponse> login(@RequestBody AuthDTO authDTO){
-//        return ResponseEntity.ok(new APIResponse(200,
-//                "OK",authService.authenticate(authDTO)));
-//    }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<APIResponse> refreshToken(@RequestBody Map<String, String> body) {
-        String refreshToken = body.get("refreshToken");
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody AuthDTO authDTO, HttpServletResponse response){
+        AuthResponseDTO authResponseDTO = authService.authenticate(authDTO);
 
-        return ResponseEntity.ok(
-                new APIResponse(200, "Access token refreshed", authService.refreshAccessToken(refreshToken))
-        );
+        Cookie refreshCookie = new Cookie("refreshToken", authResponseDTO.getRefreshToken());
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(7*24*60*60);
+        response.addCookie(refreshCookie);
+
+        return ResponseEntity.ok(Map.of("accessToken", authResponseDTO.getAccessToken()));
     }
-//
-//    @PostMapping("/auth/login")
-//    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-//        // Authenticate user and generate token
-//        String token = authService.generateToken(request.getEmail());
-//
-//
-//        Cookie cookie = new Cookie("accessToken", token);
-//        cookie.setHttpOnly(true);
-//        cookie.setSecure(false); // Set true if using HTTPS
-//        cookie.setPath("/");
-//        cookie.setMaxAge(60 * 60); // 1 hour
-//
-//        response.addCookie(cookie);
-//
-//        return ResponseEntity.ok(Map.of("status", 200, "message", "OK"));
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshAccessToken(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No refresh token found");
+        }
 
+        AuthResponseDTO response = authService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(Map.of("accessToken", response.getAccessToken()));
+    }
 }

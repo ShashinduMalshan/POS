@@ -13,8 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,35 +27,49 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JWTUtil jwtUtil;
 
-    public AuthResponseDTO authenticate(AuthDTO authDTO){
-        // validate credentials
-        User user=userRepository.findByUsername(authDTO.getUsername())
-                .orElseThrow(()->new RuntimeException("User not found"));
-        // check password
-        if (!passwordEncoder.matches(
-                authDTO.getPassword(),
-                user.getPassword())){
+    @Transactional
+    public AuthResponseDTO authenticate(AuthDTO authDTO) {
+        User user = userRepository.findByUsername(authDTO.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(authDTO.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Invalid credentials");
         }
-        // generate token
-        String accessToken=jwtUtil.generateToken(authDTO.username, user.getRole().name());
+
+        String accessToken = jwtUtil.generateToken(authDTO.getUsername(), user.getRole().name());
         String refreshToken = generateAndSaveRefreshToken(user);
+
         return new AuthResponseDTO(accessToken, refreshToken);
     }
 
     private String generateAndSaveRefreshToken(User user) {
-        refreshTokenRepository.deleteByUser(user);
+        // Find if token already exists for this user
+        Optional<RefreshToken> existingTokenOpt = refreshTokenRepository.findByUser(user);
 
         String token = UUID.randomUUID().toString();
-        RefreshToken refreshToken = RefreshToken.builder()
-                .token(token)
-                .user(user)
-                .expiryDate(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
-                .build();
+        Date expiryDate = new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000);
+
+        RefreshToken refreshToken;
+        if (existingTokenOpt.isPresent()) {
+            // Update existing token
+            refreshToken = existingTokenOpt.get();
+            refreshToken.setToken(token);
+            refreshToken.setExpiryDate(expiryDate);
+        } else {
+            // Create new token
+            refreshToken = RefreshToken.builder()
+                    .token(token)
+                    .user(user)
+                    .expiryDate(expiryDate)
+                    .build();
+        }
 
         refreshTokenRepository.save(refreshToken);
         return token;
     }
+
+
+
 
     public AuthResponseDTO refreshAccessToken(String refreshToken){
         RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
