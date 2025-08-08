@@ -14,10 +14,12 @@
     <div class="logo"><div class="logo-icon"><i class="fas fa-cash-register"></i></div><span>ProPOS</span></div>
     <div class="header-actions">
       <button class="header-action-btn" onclick="openCustomerModal()"><i class="fas fa-users"></i> Customers</button>
-      <button class="header-action-btn" onclick="openItemModal()"><i class="fas fa-box-archive"></i> Inventory</button>
+<!--      <button class="header-action-btn" onclick="openItemModal()"><i class="fas fa-box-archive"></i> Inventory</button>-->
+      <button class="header-action-btn" onclick="confirmInventorySwitch()"><i class="fas fa-box-archive"></i> Inventory</button>
       <button class="header-action-btn" onclick="openOrderHistoryModal()"><i class="fas fa-history"></i> Order History</button>
     </div>
     <div class="user-menu">
+      <button class="header-action-btn" onclick="logout()" style="margin-right: 1rem;"><i class="fas fa-sign-out-alt"></i> Logout</button>
       <div class="theme-switcher"><button id="theme-toggle-btn" title="Toggle Theme"><i class="fas fa-sun"></i></button></div>
       <div class="user-avatar" title="Jane Doe">JD</div>
     </div>
@@ -99,7 +101,8 @@
       <div class="cash-payment-section" id="cashPaymentSection">
         <div class="cash-input-group">
           <label class="cash-input-label">Amount Received</label>
-          <input type="number" class="cash-input" id="cashAmountInput" placeholder="0.00" step="0.01" oninput="calculateChange()">
+<!--          <input type="number" class="cash-input" id="cashAmountInput" placeholder="0.00" step="0.01" oninput="calculateChange()">-->
+          <input type="number" class="cash-input" id="cashAmountInput" placeholder="0.00" step="0.01" oninput="calculateChange()" onkeypress="handleEnterKey(event)">
         </div>
         <div class="quick-cash-amounts">
           <button class="quick-cash-btn" onclick="setQuickCash(20)">$20</button>
@@ -131,6 +134,37 @@
       <div class="success-icon"><i class="fas fa-check-circle"></i></div>
       <div class="success-message">Payment Successful!</div>
       <div class="success-details" id="successDetails">Transaction completed</div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div class="confirmation-overlay" id="inventoryConfirmation">
+  <div class="confirmation-modal">
+    <div class="confirmation-icon">
+      <i class="fas fa-warehouse"></i>
+    </div>
+    <h3 class="confirmation-title">Switch to Inventory Management System?</h3>
+    <p class="confirmation-message">
+      You're about to activate the advanced inventory management system. This will replace the current simple item management with enterprise-level features.
+    </p>
+    <div class="confirmation-details">
+      <div class="confirmation-details-title">What's changing:</div>
+      <div class="confirmation-details-list">
+        • Advanced inventory tracking and analytics<br>
+        • Multi-location stock management<br>
+        • Automated reorder points and alerts<br>
+        • Supplier management integration<br>
+        • Enhanced reporting and insights
+      </div>
+    </div>
+    <div class="confirmation-actions">
+      <button class="confirmation-btn cancel" onclick="closeInventoryConfirmation()">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+      <button class="confirmation-btn confirm" onclick="activateInventorySystem()">
+        <i class="fas fa-check"></i> Activate System
+      </button>
     </div>
   </div>
 </div>

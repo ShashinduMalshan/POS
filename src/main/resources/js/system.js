@@ -24,6 +24,183 @@ document.addEventListener('DOMContentLoaded', () => {
 //new start
 
 // --- PAYMENT DRAWER FUNCTIONS ---
+
+// Add thermal bill printing function
+function printThermalBill(orderData) {
+    const printWindow = window.open('', '_blank', 'width=450,height=700,scrollbars=yes,resizable=yes');
+    const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Receipt</title>
+    <style>
+        /*@media print { @page { size: 80mm auto; margin: 0; } }*/
+        @media print {
+      @page {
+        size: 80mm; /* Only width specified */
+        margin: 0;
+      }
+    }
+    body { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; margin: 0; padding: 12px; width: auto; max-width: 400px; }
+    .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
+    .store-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+    .store-info { font-size: 11px; line-height: 1.4; }
+    .receipt-info { margin: 12px 0; font-size: 11px; background: #f5f5f5; padding: 8px; border-radius: 4px; }
+    .items { border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
+    .item { display: flex; justify-content: space-between; margin: 4px 0; }
+    .item-name { flex: 1; font-weight: bold; }
+    .item-qty { width: 40px; text-align: center; }
+    .item-price { width: 60px; text-align: right; font-weight: bold; }
+    .item-details { font-size: 10px; color: #666; margin-left: 0; margin-bottom: 4px; }
+    .totals { margin: 12px 0; }
+    .total-row { display: flex; justify-content: space-between; margin: 4px 0; padding: 2px 0; }
+    .total-row.grand { font-weight: bold; border-top: 2px dashed #000; padding-top: 8px; font-size: 16px; }
+    .payment-info { margin: 12px 0; border-top: 2px dashed #000; padding-top: 12px; background: #f9f9f9; padding: 12px; border-radius: 4px; }
+    .footer { text-align: center; margin-top: 20px; font-size: 11px; border-top: 2px dashed #000; padding-top: 12px; }
+    .thank-you { font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+</style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="store-name">ProPOS Store</div>
+                <div class="store-info">123 Business St<br>City, State 12345<br>Tel: (555) 123-4567</div>
+            </div>
+            
+            <div class="receipt-info">
+                <div>Receipt #: ${orderData.id}</div>
+                <div>Date: ${orderData.date.toLocaleString()}</div>
+                <div>Cashier: Jane Doe</div>
+                <div>Customer: ${orderData.customer}</div>
+            </div>
+            
+            <div class="items">
+                ${Object.entries(orderData.items).map(([id, qty]) => {
+        const product = products[id];
+        const itemTotal = product.price * qty;
+        return `
+                        <div class="item">
+                            <span class="item-name">${product.name}</span>
+                            <span class="item-qty">${qty}x</span>
+                            <span class="item-price">$${itemTotal.toFixed(2)}</span>
+                        </div>
+                        <div style="font-size: 10px; color: #666; margin-left: 0;">
+                            @ $${product.price.toFixed(2)} each
+                        </div>
+                    `;
+    }).join('')}
+            </div>
+            
+            <div class="totals">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span>$${(orderData.total / 1.085).toFixed(2)}</span>
+                </div>
+                <div class="total-row">
+                    <span>Tax (8.5%):</span>
+                    <span>$${(orderData.total - (orderData.total / 1.085)).toFixed(2)}</span>
+                </div>
+                <div class="total-row grand">
+                    <span>TOTAL:</span>
+                    <span>$${orderData.total.toFixed(2)}</span>
+                </div>
+            </div>
+            
+            <div class="payment-info">
+                <div class="total-row">
+                    <span>Payment Method:</span>
+                    <span>${orderData.paymentMethod.toUpperCase()}</span>
+                </div>
+                ${orderData.paymentMethod === 'cash' ? `
+                    <div class="total-row">
+                        <span>Cash Received:</span>
+                        <span>$${orderData.cashReceived.toFixed(2)}</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Change:</span>
+                        <span>$${orderData.change.toFixed(2)}</span>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <div class="footer">
+                <div class="thank-you">Thank You for Your Business!</div>
+                <div>Please Come Again</div>
+                <div style="margin-top: 8px;">
+                    Return Policy: 30 days with receipt<br>
+                    Customer Service: (555) 123-4567
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
+
+// Add to your payment drawer functions section:
+
+// function confirmInventorySwitch() {
+//     if (confirm('Switch to Inventory Management System?\n\nThis will replace the current item management modal with a full inventory management system. Continue?')) {
+//         alert('Inventory Management System activated!\n\nNote: Advanced inventory features are now available. The simple item modal has been replaced.');
+//         openItemModal(); // You can replace this with actual inventory system later
+//     }
+// }
+
+
+function confirmInventorySwitch() {
+    document.getElementById('inventoryConfirmation').classList.add('active');
+}
+
+function closeInventoryConfirmation() {
+    document.getElementById('inventoryConfirmation').classList.remove('active');
+}
+
+function activateInventorySystem() {
+    closeInventoryConfirmation();
+
+    // Show success notification
+    showNotification(
+        'Inventory Management System activated successfully! Advanced features are now available.',
+        'System Activated',
+        'success'
+    );
+
+    // Open the current item modal (you can replace this later with actual inventory system)
+    setTimeout(() => {
+        openItemModal();
+    }, 1000);
+}
+
+function logout() {
+    if (Object.keys(cart).length > 0) {
+        if (!confirm('You have items in your cart. Are you sure you want to logout?')) {
+            return;
+        }
+    }
+    if (confirm('Are you sure you want to logout?')) {
+        // Clear all data
+        cart = {};
+        selectedCustomer = null;
+        document.getElementById('customerSelect').value = '';
+        renderAll();
+        alert('Logged out successfully!');
+        // You can add actual logout logic here
+    }
+}
+
+function handleEnterKey(event) {
+    if (event.key === 'Enter') {
+        const completeBtn = document.getElementById('completePaymentBtn');
+        if (!completeBtn.disabled) {
+            completePayment();
+        }
+    }
+}
+
 function openPaymentDrawer() {
     const subtotal = Object.entries(cart).reduce((sum, [id, qty]) => sum + (products[id].price * qty), 0);
     const tax = subtotal * 0.085;
@@ -67,6 +244,7 @@ function selectPaymentMethod(method) {
     }
 }
 
+// Update the calculateChange function to include auto-scroll:
 function calculateChange() {
     const cashAmount = parseFloat(document.getElementById('cashAmountInput').value) || 0;
     const total = currentTotal;
@@ -80,6 +258,12 @@ function calculateChange() {
         changeAmount.textContent = `$${change.toFixed(2)}`;
         changeDisplay.classList.add('active');
         completeBtn.disabled = false;
+
+        // Auto-scroll to complete payment button
+        setTimeout(() => {
+            const paymentActions = document.querySelector('.payment-actions');
+            paymentActions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 300);
     } else {
         changeDisplay.classList.remove('active');
         completeBtn.disabled = true;
@@ -135,6 +319,8 @@ function completePayment() {
         selectedCustomer = null;
         document.getElementById('customerSelect').value = '';
         renderAll();
+
+        printThermalBill(order);
 
         setTimeout(() => {
             closePaymentDrawer();
@@ -205,19 +391,6 @@ function renderProducts() {
         grid.appendChild(productCard);
     });
 }
-// function updateBill() {
-//     const billItems = document.getElementById('billItems');
-//     if (Object.keys(cart).length === 0) {
-//         billItems.innerHTML = `<div class="empty-cart"><div class="empty-cart-icon"><i class="fas fa-shopping-cart"></i></div><div>Your cart is empty</div></div>`;
-//     } else {
-//         billItems.innerHTML = Object.entries(cart).map(([id, quantity]) => {
-//             const product = products[id]; const itemTotal = product.price * quantity;
-//             return `<div class="bill-item" data-product-id="${id}"><img src="${product.image}" class="bill-item-img" alt="${product.name}"><div class="item-details"><div class="item-name">${product.name}</div><div class="item-quantity-editor"><input type="number" class="bill-item-qty-input" value="${quantity}" min="1" max="${product.stock}" data-product-id="${id}"><span class="item-price-per-unit">@ $${product.price.toFixed(2)}</span></div></div><div class="item-total-price">$${itemTotal.toFixed(2)}</div><button class="remove-item" onclick="removeItemFromCart('${id}')" title="Remove"><i class="fas fa-trash-alt"></i></button></div>`;
-//         }).join('');
-//     }
-//     updateTotals(); updateCheckoutButton();
-// }
-
 // Find the updateBill() function and replace it with this updated version:
 
 function updateBill() {
@@ -274,22 +447,6 @@ function handleBillQtyChange(event) {
     }
 }
 function removeItemFromCart(productId) { delete cart[productId]; renderProducts(); updateBill(); }
-// function processCheckout() {
-//     if (document.getElementById('checkoutBtn').disabled) return;
-//     const subtotal = Object.entries(cart).reduce((sum, [id, qty]) => sum + (products[id].price * qty), 0);
-//     const tax = subtotal * 0.085; const total = subtotal + tax;
-//     const order = {
-//         id: `ORD-${Date.now()}`, date: new Date(),
-//         customer: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
-//         items: { ...cart }, total: total,
-//     };
-//     orderHistory.push(order);
-//     Object.entries(cart).forEach(([id, qty]) => { if (products[id]) products[id].stock -= qty; });
-//     cart = {}; selectedCustomer = null; document.getElementById('customerSelect').value = '';
-//     renderAll();
-//     showNotification(`Payment of $${total.toFixed(2)} successful!`, 'Checkout Complete', 'success');
-//     checkLowStock();
-// }
 
 function processCheckout() {
     if (document.getElementById('checkoutBtn').disabled) return;
