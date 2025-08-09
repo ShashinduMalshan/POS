@@ -27,7 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Add thermal bill printing function
 function printThermalBill(orderData) {
-    const printWindow = window.open('', '_blank', 'width=450,height=700,scrollbars=yes,resizable=yes');
+
+    const printWindow = window.open(
+        '',
+        '_blank',
+        'width=900,height=700,left=0,top=20px,scrollbars=yes,resizable=yes'
+    );
+
+
     const printContent = `
         <!DOCTYPE html>
         <html>
@@ -36,10 +43,17 @@ function printThermalBill(orderData) {
     <style>
         /*@media print { @page { size: 80mm auto; margin: 0; } }*/
         @media print {
+      
       @page {
-        size: 80mm; /* Only width specified */
-        margin: 0;
-      }
+      size: auto;
+      margin: 10mm;
+    }
+    
+    body {
+      zoom: 2.5; /* Scale up the preview */
+    }
+
+
     }
     body { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; margin: 0; padding: 12px; width: auto; max-width: 400px; }
     .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
