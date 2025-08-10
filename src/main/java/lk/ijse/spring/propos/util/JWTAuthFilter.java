@@ -33,23 +33,33 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             return;
         }
         jwtToken = authHeader.substring(7);
-        username=jwtUtil.extractUsername(jwtToken);
-        if (username!=null && SecurityContextHolder.getContext()
-                .getAuthentication()==null) {
-            UserDetails userDetails=userDetailsService
-                    .loadUserByUsername(username);
-            if (jwtUtil.validateToken(jwtToken)){
-                UsernamePasswordAuthenticationToken authToken
-                        =new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        try {
+            username=jwtUtil.extractUsername(jwtToken);
+            if (username!=null && SecurityContextHolder.getContext()
+                    .getAuthentication()==null) {
+                UserDetails userDetails=userDetailsService
+                        .loadUserByUsername(username);
+                if (jwtUtil.validateToken(jwtToken)){
+                    UsernamePasswordAuthenticationToken authToken
+                            =new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+//            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                throw new org.springframework.security.authentication.BadCredentialsException("Token expired", e);
+        } catch (Exception e) {
+//            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid Token");
+            throw new org.springframework.security.authentication.BadCredentialsException("Invalid token", e);
         }
+
         filterChain.doFilter(request, response);
     }
 
