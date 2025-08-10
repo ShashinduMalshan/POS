@@ -1,5 +1,6 @@
 package lk.ijse.spring.propos.config;
 
+import lk.ijse.spring.propos.security.CustomAccessDeniedHandler;
 import lk.ijse.spring.propos.util.JWTAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -22,6 +24,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final JWTAuthFilter jwtAuthFilter;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,6 +38,10 @@ public class SecurityConfig {
                         session->session
                                 .sessionCreationPolicy(
                                         SessionCreationPolicy.STATELESS)
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter
