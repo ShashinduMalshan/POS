@@ -21,7 +21,32 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkLowStock, 30000); // Check every 30 seconds
 });
 
-//new start
+//new start with authenticated user
+
+let accessToken = null;
+
+async function refreshAccessToken() {
+    try {
+        const res = await $.ajax({
+            url: 'http://localhost:8080/auth/refresh',
+            method: 'POST',
+            xhrFields: {withCredentials: true},
+        });
+
+        accessToken = res.accessToken;
+        console.log("Token refreshed: ", accessToken);
+        return true;
+    } catch (error) {
+        console.warn('Refresh failed, redirecting to login.');
+        window.location.href = '/login';
+        return false;
+    }
+}
+
+$(document).ready(function () {
+
+})
+
 
 // --- PAYMENT DRAWER FUNCTIONS ---
 
