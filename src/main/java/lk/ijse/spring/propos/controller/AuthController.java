@@ -55,4 +55,20 @@ public class AuthController {
         AuthResponseDTO response = authService.refreshAccessToken(refreshToken);
         return ResponseEntity.ok(Map.of("accessToken", response.getAccessToken()));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@CookieValue(value = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
+        if (refreshToken != null) {
+            authService.logout(refreshToken);
+        }
+
+        // Clear the refresh token cookie on the client side
+        Cookie cookie = new Cookie("refreshToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // Set max age to 0 to delete the cookie
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok("Logout successful");
+    }
 }

@@ -100,4 +100,9 @@ public class AuthService {
         userRepository.save(user);
         return "User registered successfully";
     }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenRepository::delete);
+    }
 }
