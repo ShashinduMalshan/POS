@@ -26,6 +26,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTUtil jwtUtil;
+    private final TokenDenyListService denyListService;
 
     @Transactional
     public AuthResponseDTO authenticate(AuthDTO authDTO) {
@@ -114,8 +115,16 @@ public class AuthService {
 //    }
 
     @Transactional
-    public void logout(String refreshToken) {
-        // This now correctly uses the refresh token string to delete the record
-        refreshTokenRepository.deleteByToken(refreshToken);
+    public void logout(String accessToken, String refreshToken) {
+
+        if (accessToken != null && accessToken.startsWith("Bearer ")) {
+            String token = accessToken.substring(7);
+            String jti = jwtUtil.extractJti(token);
+            java.util.Date expiry = jwtUtil.extractExpiration(token);
+            denyListService.addToDenyList(jti, expiry);
+        }
+
+        if (refreshToken != null) refreshTokenRepository.deleteByToken(refreshToken);
+
     }
 }

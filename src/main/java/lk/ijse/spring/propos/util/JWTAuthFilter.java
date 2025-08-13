@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lk.ijse.spring.propos.service.TokenDenyListService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,7 @@ import java.io.IOException;
 public class JWTAuthFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final TokenDenyListService denyListService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -27,6 +29,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         final String jwtToken;
         final String username;
+        final String jti;
 
         if (authHeader==null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -35,6 +38,14 @@ public class JWTAuthFilter extends OncePerRequestFilter {
         jwtToken = authHeader.substring(7);
 
         try {
+
+            jti = jwtUtil.extractJti(jwtToken);
+
+            if (denyListService.isDenyList(jti)) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been invalidated");
+                return;
+            }
+
             username=jwtUtil.extractUsername(jwtToken);
             if (username!=null && SecurityContextHolder.getContext()
                     .getAuthentication()==null) {

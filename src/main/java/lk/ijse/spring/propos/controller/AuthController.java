@@ -59,9 +59,12 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@CookieValue(value = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
+    public ResponseEntity<?> logout(
+            @RequestHeader(value = "Authorization", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
+
         if (refreshToken != null) {
-            authService.logout(refreshToken);
+            authService.logout(accessToken, refreshToken);
         }
 
         Cookie cookie = new Cookie("refreshToken", null);
@@ -70,7 +73,7 @@ public class AuthController {
         cookie.setMaxAge(0);
         response.addCookie(cookie);
 
-        return ResponseEntity.ok("Logout successful");
+        return ResponseEntity.ok(Map.of("message", "Logout successfully..!"));
     }
 
     @GetMapping("/me")

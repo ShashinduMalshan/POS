@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JWTUtil {
@@ -20,6 +21,7 @@ public class JWTUtil {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
+                .setId(UUID.randomUUID().toString()) //set unique id
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(
                         System.currentTimeMillis() + expiration))
@@ -46,6 +48,22 @@ public class JWTUtil {
         }catch (Exception e){
             return false;
         }
+    }
+
+    public String extractJti(String token){
+        return extractAllClaims(token).getId();
+    }
+
+    public java.util.Date extractExpiration(String token){
+        return extractAllClaims(token).getExpiration();
+    }
+
+    private io.jsonwebtoken.Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
 }
