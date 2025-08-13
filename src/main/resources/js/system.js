@@ -185,15 +185,6 @@ function printThermalBill(orderData) {
     printWindow.close();
 }
 
-// Add to your payment drawer functions section:
-
-// function confirmInventorySwitch() {
-//     if (confirm('Switch to Inventory Management System?\n\nThis will replace the current item management modal with a full inventory management system. Continue?')) {
-//         alert('Inventory Management System activated!\n\nNote: Advanced inventory features are now available. The simple item modal has been replaced.');
-//         openItemModal(); // You can replace this with actual inventory system later
-//     }
-// }
-
 
 function confirmInventorySwitch() {
     document.getElementById('inventoryConfirmation').classList.add('active');
