@@ -1,3 +1,5 @@
+import { auth } from './global.js';
+
 $(document).ready(function() {
     console.log("✅ jQuery is working!");
 });
@@ -65,12 +67,19 @@ function showLoginSuccess(role) {
     setTimeout(() => {
         successMsg.fadeOut(300, () => {
             successMsg.remove();
-            window.location.href = 'http://localhost:63342/ProPOS/system.html';
+
+            if (userRole === 'ADMIN') {
+                window.location.href = 'http://localhost:63343/resources/inventory.html';
+            } else if (userRole === 'CASHIER') {
+                window.location.href = 'http://localhost:63343/resources/system.html';
+            }
+
+
         });
     }, 2000);
 }
 
-let accessToken = null; // Keep in memory only
+let userRole = null;
 
 function parseJwt(token) {
     try {
@@ -96,10 +105,11 @@ function login(email, password) {
         data: JSON.stringify({ username: email, password: password }),
         xhrFields: { withCredentials: true }, // to receive cookies
     }).then(res => {
-        accessToken = res.accessToken;
-        console.log("✅ Logged in. Token:", accessToken);
-        const payload = parseJwt(accessToken);
-        console.log("🔐 Role:", payload?.role);
+        auth.accessToken = res.accessToken;
+        console.log("✅ Logged in. Token:", auth.accessToken);
+        const payload = parseJwt(auth.accessToken);
+        userRole = payload.role;
+        console.log("🔐 Role:", userRole);
         return payload?.role;
     }).catch(err => {
         alert("Login failed: " + (err.responseJSON?.message || "Invalid credentials"));
@@ -113,10 +123,10 @@ function refreshAccessToken() {
         method: 'POST',
         xhrFields: { withCredentials: true },
     }).then(res => {
-        accessToken = res.accessToken;
-        console.log("♻️ Token refreshed:", accessToken);
+        auth.accessToken = res.accessToken;
+        console.log("♻️ Token refreshed:", auth.accessToken);
     }).catch(err => {
-        console.warn("❌ Refresh failed, please login again.");
+        console.warn("❌ Refresh failed, please login.");
         alert("Session expired. Please sign in again.");
         window.location.href = '/login.html';
     });

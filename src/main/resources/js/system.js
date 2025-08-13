@@ -1,3 +1,32 @@
+import { auth } from './global.js';
+
+// This function will check if user is authenticated
+function checkAuthentication() {
+    $.ajax({
+        url: 'http://localhost:8080/auth/me', // Protected endpoint
+        method: 'GET',
+        xhrFields: { withCredentials: true }, // send cookies
+        beforeSend: function (xhr) {
+            if (auth.accessToken) {
+                xhr.setRequestHeader('Authorization', 'Bearer ' + auth.accessToken);
+            }
+        }
+    })
+        .done(function (res) {
+            console.log("✅ User authenticated:", res);
+        })
+        .fail(function (xhr) {
+            console.warn("❌ Not authenticated, redirecting...");
+            window.location.href = 'http://localhost:63343/resources/signIn.html';
+        });
+}
+
+// Run as soon as the document is ready
+$(document).ready(function () {
+    checkAuthentication();
+});
+
+
 // --- STATE MANAGEMENT ---
 let selectedPaymentMethod = null;
 let currentTotal = 0;
@@ -12,8 +41,7 @@ let products = { 'coffee-beans': { name: 'Premium Coffee Beans', price: 24.99, s
 let customers = { 'johndoe': { name: 'John Doe', email: 'john@example.com', phone: '+15551234567', image: 'https://randomuser.me/api/portraits/men/32.jpg' }, 'sarahwilson': { name: 'Sarah Wilson', email: 'sarah@example.com', phone: '+15552345678', image: 'https://randomuser.me/api/portraits/women/44.jpg' }, 'mikejohnson': { name: 'Mike Johnson', email: 'mike@example.com', phone: '+15553456789', image: 'https://randomuser.me/api/portraits/men/46.jpg' } };
 
 // --- INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuth();
+document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     renderAll();
     document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
@@ -23,53 +51,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 //new start with authenticated user
-
-// let accessToken = null;
-
-async function refreshAccessToken() {
-    const res = await fetch("http://localhost:8080/auth/refresh", {
-        method: 'POST',
-        credentials: "include"
-    });
-
-    if (!res.ok) {
-        console.warn("Refresh failed");
-        return false;
-    }
-
-    const data = await res.json();
-    window.accessToken = data.accessToken;
-    return true;
-}
-
-async function checkAuth() {
-    let res = await fetch("http://localhost:8080/auth/me", {
-        headers: { "Authorization": "Bearer " + window.accessToken },
-        credentials: "include"
-    });
-
-    if (res.status === 401) {
-        // Try refresh
-        const refreshed = await refreshAccessToken();
-        if (!refreshed) {
-            window.location.href = "http://localhost:8080/auth/login";
-            return;
-        }
-        // Retry after refresh
-        res = await fetch("http://localhost:8080/auth/me", {
-            headers: { "Authorization": "Bearer " + window.accessToken },
-            credentials: "include"
-        });
-    }
-
-    if (!res.ok) {
-        window.location.href = "http://localhost:8080/auth/login";
-    }
-}
-
-// $(document).ready(function () {
-//
-// })
 
 
 // --- PAYMENT DRAWER FUNCTIONS ---
