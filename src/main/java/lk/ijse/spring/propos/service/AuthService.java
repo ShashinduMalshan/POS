@@ -108,8 +108,14 @@ public class AuthService {
 //        refreshTokenRepository.deleteByUser_Username(username);
 //    }
 
+//    @Transactional
+//    public void logout(String username) {
+//        refreshTokenRepository.deleteByUser_Username(username);
+//    }
+
     @Transactional
-    public void logout(String username) {
-        refreshTokenRepository.deleteByUser_Username(username);
+    public void logout(String refreshToken) {
+        // This now correctly uses the refresh token string to delete the record
+        refreshTokenRepository.deleteByToken(refreshToken);
     }
 }
