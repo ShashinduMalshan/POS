@@ -1,6 +1,7 @@
 package lk.ijse.spring.propos.controller;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lk.ijse.spring.propos.dto.APIResponse;
 import lk.ijse.spring.propos.dto.AuthDTO;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @CrossOrigin(origins = "http://localhost:63342", allowCredentials = "true")
@@ -70,4 +72,15 @@ public class AuthController {
 
         return ResponseEntity.ok("Logout successful");
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
+        Principal principal = request.getUserPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+        }
+        return ResponseEntity.ok(Map.of("username", principal.getName()));
+    }
+
+
 }

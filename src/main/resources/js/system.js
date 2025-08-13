@@ -12,7 +12,8 @@ let products = { 'coffee-beans': { name: 'Premium Coffee Beans', price: 24.99, s
 let customers = { 'johndoe': { name: 'John Doe', email: 'john@example.com', phone: '+15551234567', image: 'https://randomuser.me/api/portraits/men/32.jpg' }, 'sarahwilson': { name: 'Sarah Wilson', email: 'sarah@example.com', phone: '+15552345678', image: 'https://randomuser.me/api/portraits/women/44.jpg' }, 'mikejohnson': { name: 'Mike Johnson', email: 'mike@example.com', phone: '+15553456789', image: 'https://randomuser.me/api/portraits/men/46.jpg' } };
 
 // --- INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
     initializeTheme();
     renderAll();
     document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
@@ -23,29 +24,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
 //new start with authenticated user
 
-let accessToken = null;
+// let accessToken = null;
 
 async function refreshAccessToken() {
-    try {
-        const res = await $.ajax({
-            url: 'http://localhost:8080/auth/refresh',
-            method: 'POST',
-            xhrFields: {withCredentials: true},
-        });
+    const res = await fetch("http://localhost:8080/auth/refresh", {
+        method: 'POST',
+        credentials: "include"
+    });
 
-        accessToken = res.accessToken;
-        console.log("Token refreshed: ", accessToken);
-        return true;
-    } catch (error) {
-        console.warn('Refresh failed, redirecting to login.');
-        window.location.href = '/login';
+    if (!res.ok) {
+        console.warn("Refresh failed");
         return false;
+    }
+
+    const data = await res.json();
+    window.accessToken = data.accessToken;
+    return true;
+}
+
+async function checkAuth() {
+    let res = await fetch("http://localhost:8080/auth/me", {
+        headers: { "Authorization": "Bearer " + window.accessToken },
+        credentials: "include"
+    });
+
+    if (res.status === 401) {
+        // Try refresh
+        const refreshed = await refreshAccessToken();
+        if (!refreshed) {
+            window.location.href = "http://localhost:8080/auth/login";
+            return;
+        }
+        // Retry after refresh
+        res = await fetch("http://localhost:8080/auth/me", {
+            headers: { "Authorization": "Bearer " + window.accessToken },
+            credentials: "include"
+        });
+    }
+
+    if (!res.ok) {
+        window.location.href = "http://localhost:8080/auth/login";
     }
 }
 
-$(document).ready(function () {
-
-})
+// $(document).ready(function () {
+//
+// })
 
 
 // --- PAYMENT DRAWER FUNCTIONS ---
