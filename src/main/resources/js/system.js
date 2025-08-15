@@ -1,6 +1,6 @@
-import { auth } from './global.js';
+const accessToken = localStorage.getItem('accessToken');
+console.log(accessToken)
 
-// This function will check if user is authenticated
 function checkAuthentication() {
     $.ajax({
         url: 'http://localhost:8080/auth/me', // Protected endpoint
@@ -8,12 +8,13 @@ function checkAuthentication() {
         xhrFields: { withCredentials: true }, // send cookies
         beforeSend: function (xhr) {
             if (auth.accessToken) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + auth.accessToken);
+                xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
             }
         }
     })
         .done(function (res) {
             console.log("✅ User authenticated:", res);
+            alert(res)
         })
         .fail(function (xhr) {
             console.warn("❌ Not authenticated, redirecting...");
@@ -25,7 +26,6 @@ function checkAuthentication() {
 $(document).ready(function () {
     checkAuthentication();
 });
-
 
 // --- STATE MANAGEMENT ---
 let selectedPaymentMethod = null;
@@ -50,20 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkLowStock, 30000); // Check every 30 seconds
 });
 
-//new start with authenticated user
-
-
 // --- PAYMENT DRAWER FUNCTIONS ---
 
 // Add thermal bill printing function
 function printThermalBill(orderData) {
-
     const printWindow = window.open(
         '',
         '_blank',
         'width=900,height=700,left=0,top=20px,scrollbars=yes,resizable=yes'
     );
-
 
     const printContent = `
         <!DOCTYPE html>
@@ -184,7 +179,6 @@ function printThermalBill(orderData) {
     printWindow.print();
     printWindow.close();
 }
-
 
 function confirmInventorySwitch() {
     document.getElementById('inventoryConfirmation').classList.add('active');
@@ -364,6 +358,7 @@ function completePayment() {
         }, 1500);
     }, 2000);
 }
+
 function renderAll() { renderProducts(); renderCustomerDropdown(); updateBill(); updateCustomerInfo(); renderCustomerTable(); renderItemTable(); }
 
 // --- THEME MANAGEMENT ---
@@ -372,6 +367,7 @@ function initializeTheme() {
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.querySelector('#theme-toggle-btn i').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
+
 function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -405,6 +401,7 @@ function showNotification(message, title = 'Alert', type = 'warning') {
         }
     }, 5000);
 }
+
 function checkLowStock() {
     const lowStockItems = Object.values(products).filter(p => p.stock > 0 && p.stock < 5);
     if (lowStockItems.length > 0) {
@@ -426,7 +423,6 @@ function renderProducts() {
         grid.appendChild(productCard);
     });
 }
-// Find the updateBill() function and replace it with this updated version:
 
 function updateBill() {
     const billItems = document.getElementById('billItems');
@@ -448,7 +444,6 @@ function updateBill() {
     updateCheckoutButton();
 }
 
-
 function updateTotals() {
     const subtotal = Object.entries(cart).reduce((sum, [id, qty]) => sum + (products[id].price * qty), 0);
     const tax = subtotal * 0.085; const total = subtotal + tax;
@@ -456,6 +451,7 @@ function updateTotals() {
     document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
     document.getElementById('total').textContent = `$${total.toFixed(2)}`;
 }
+
 function updateCheckoutButton() { document.getElementById('checkoutBtn').disabled = Object.keys(cart).length === 0; }
 
 // --- INTERACTION LOGIC ---
@@ -470,6 +466,7 @@ function updateQuantity(productId, change, cardElement) {
     }
     renderProducts(); updateBill();
 }
+
 function handleBillQtyChange(event) {
     if (event.target.classList.contains('bill-item-qty-input')) {
         const productId = event.target.dataset.productId;
@@ -481,6 +478,7 @@ function handleBillQtyChange(event) {
         renderProducts(); updateBill();
     }
 }
+
 function removeItemFromCart(productId) { delete cart[productId]; renderProducts(); updateBill(); }
 
 function processCheckout() {
@@ -548,15 +546,17 @@ function renderCustomerTable() {
         tableBody.appendChild(row);
     });
 }
+
 function renderItemTable() {
     const tableBody = document.getElementById('itemTableBody');
     tableBody.innerHTML = '';
     Object.entries(products).forEach(([id, item]) => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td><img src="${item.image}" alt="${item.name}" class="item-thumb"></td><td><strong class="item-name-modal">${item.name}</strong></td><td>$${item.price.toFixed(2)}</td><td>${item.stock}</td><td class="action-buttons"><button title="Edit" onclick="editItem('${id}')"><i class="fas fa-edit"></i></button><button title="Delete" class="delete-btn" onclick="deleteItem('${id}')"><i class="fas fa-trash-alt"></i></button></td>`;
+        row.innerHTML = `<td><img src="${item.image}" alt="${item.name}" class="item-thumb"></td><td><strong class="item-name-modal">${item.name}</strong></td><td>${item.price.toFixed(2)}</td><td>${item.stock}</td><td class="action-buttons"><button title="Edit" onclick="editItem('${id}')"><i class="fas fa-edit"></i></button><button title="Delete" class="delete-btn" onclick="deleteItem('${id}')"><i class="fas fa-trash-alt"></i></button></td>`;
         tableBody.appendChild(row);
     });
 }
+
 function renderCustomerDropdown() {
     const select = document.getElementById('customerSelect');
     const currentValue = select.value;
@@ -567,3 +567,40 @@ function renderCustomerDropdown() {
     });
     select.value = currentValue;
 }
+
+// ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE =====
+// This is the key fix - expose all functions to the global window object
+// so they can be called from HTML onclick attributes
+
+window.processCheckout = processCheckout;
+window.logout = logout;
+window.openOrderHistoryModal = openOrderHistoryModal;
+window.confirmInventorySwitch = confirmInventorySwitch;
+window.openCustomerModal = openCustomerModal;
+window.closeCustomerModal = closeCustomerModal;
+window.openItemModal = openItemModal;
+window.closeItemModal = closeItemModal;
+window.closeOrderHistoryModal = closeOrderHistoryModal;
+window.closeInventoryConfirmation = closeInventoryConfirmation;
+window.activateInventorySystem = activateInventorySystem;
+window.selectPaymentMethod = selectPaymentMethod;
+window.calculateChange = calculateChange;
+window.setQuickCash = setQuickCash;
+window.setExactAmount = setExactAmount;
+window.clearCashInput = clearCashInput;
+window.completePayment = completePayment;
+window.closePaymentDrawer = closePaymentDrawer;
+window.handleEnterKey = handleEnterKey;
+window.updateQuantity = updateQuantity;
+window.removeItemFromCart = removeItemFromCart;
+window.previewImage = previewImage;
+window.saveCustomer = saveCustomer;
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
+window.clearCustomerForm = clearCustomerForm;
+window.saveItem = saveItem;
+window.editItem = editItem;
+window.deleteItem = deleteItem;
+window.clearItemForm = clearItemForm;
+window.selectCustomer = selectCustomer;
+window.filterProducts = filterProducts;

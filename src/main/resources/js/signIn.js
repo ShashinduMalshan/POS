@@ -1,5 +1,3 @@
-import { auth } from './global.js';
-
 $(document).ready(function() {
     console.log("✅ jQuery is working!");
 });
@@ -105,9 +103,11 @@ function login(email, password) {
         data: JSON.stringify({ username: email, password: password }),
         xhrFields: { withCredentials: true }, // to receive cookies
     }).then(res => {
-        auth.accessToken = res.accessToken;
-        console.log("✅ Logged in. Token:", auth.accessToken);
-        const payload = parseJwt(auth.accessToken);
+        // auth.accessToken = res.accessToken;
+        // initSystem();
+        localStorage.setItem('accessToken', res.accessToken);
+        // console.log("✅ Logged in. Token:", auth.accessToken);
+        const payload = parseJwt(localStorage.getItem('accessToken'));
         userRole = payload.role;
         console.log("🔐 Role:", userRole);
         return payload?.role;
@@ -123,8 +123,8 @@ function refreshAccessToken() {
         method: 'POST',
         xhrFields: { withCredentials: true },
     }).then(res => {
-        auth.accessToken = res.accessToken;
-        console.log("♻️ Token refreshed:", auth.accessToken);
+        localStorage.setItem("accessToken", res.accessToken);
+        console.log("♻️ Token refreshed:", res.accessToken);
     }).catch(err => {
         console.warn("❌ Refresh failed, please login.");
         alert("Session expired. Please sign in again.");
