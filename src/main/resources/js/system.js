@@ -1,30 +1,56 @@
 const accessToken = localStorage.getItem('accessToken');
 console.log(accessToken)
 
-function checkAuthentication() {
-    $.ajax({
-        url: 'http://localhost:8080/auth/me', // Protected endpoint
-        method: 'GET',
-        xhrFields: { withCredentials: true }, // send cookies
-        beforeSend: function (xhr) {
-            if (auth.accessToken) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-            }
-        }
-    })
-        .done(function (res) {
-            console.log("✅ User authenticated:", res);
-            alert(res)
-        })
-        .fail(function (xhr) {
-            console.warn("❌ Not authenticated, redirecting...");
-            window.location.href = 'http://localhost:63343/resources/signIn.html';
+async function authFetch() {
+    try {
+        const token = localStorage.getItem('accessToken'); // ✅ read latest token
+        return await $.ajax({
+            url: 'http://localhost:8080/auth/me',
+            method: 'GET',
+            contentType: 'application/json',
+            beforeSend: function (xhr) {
+                if (token) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                }
+            },
+            xhrFields: { withCredentials: true }
         });
+    } catch (xhr) {
+        if (xhr.status === 401) {
+            console.warn("⚠️ Token expired, trying refresh...");
+            const refreshed = await refreshAccessToken();
+            if (!refreshed) {
+                console.warn("❌ Refresh failed, redirecting to login.");
+                window.location.href = 'http://localhost:63343/resources/signIn.html';
+                return;
+            }
+            return await authFetch(); // Retry with new token
+        } else {
+            console.error("❌ Auth failed:", xhr);
+            throw xhr;
+        }
+    }
+}
+
+function refreshAccessToken() {
+    return $.ajax({
+        url: 'http://localhost:8080/auth/refresh',
+        method: 'POST',
+        xhrFields: { withCredentials: true },
+    }).then(res => {
+        localStorage.setItem("accessToken", res.accessToken);
+        console.log("♻️ Token refreshed:", res.accessToken);
+        return true; // ✅ signal success
+    }).catch(err => {
+        console.warn("❌ Refresh failed, please login.");
+        return false; // ✅ signal failure
+    });
 }
 
 // Run as soon as the document is ready
 $(document).ready(function () {
-    checkAuthentication();
+    // checkAuthentication();
+    authFetch();
 });
 
 // --- STATE MANAGEMENT ---

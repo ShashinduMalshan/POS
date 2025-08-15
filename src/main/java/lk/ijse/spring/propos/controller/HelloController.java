@@ -15,7 +15,7 @@ public class HelloController {
     }
 
     @GetMapping("/user")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('CASHIER')")
     public String helloUser(){
         return "Hello World - User";
     }
