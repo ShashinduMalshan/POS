@@ -169,6 +169,58 @@
   </div>
 </div>
 
+<!-- Server Down Modal - Add before closing </body> tag -->
+<div class="server-down-overlay" id="serverDownModal">
+  <div class="server-down-modal">
+    <div class="server-status-icon">
+      <i class="fas fa-server"></i>
+    </div>
+
+    <h2 class="server-down-title">Server Temporarily Unavailable</h2>
+    <p class="server-down-message">
+      We're experiencing some technical difficulties. Don't worry - we're automatically retrying the connection and will restore service as soon as possible.
+    </p>
+
+    <div class="server-success-state" id="serverSuccessState">
+      <div class="server-success-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="server-success-message">Connection restored successfully!</div>
+    </div>
+
+    <div class="retry-section" id="serverRetrySection">
+      <div class="retry-status">
+        <div class="retry-spinner" id="serverRetrySpinner"></div>
+        <span class="retry-text" id="serverRetryText">Retrying connection...</span>
+      </div>
+
+      <div class="retry-countdown" id="serverRetryCountdown">5</div>
+      <div class="retry-label">seconds until next attempt</div>
+    </div>
+
+    <div class="connection-attempts">
+      <div class="attempts-title">
+        <i class="fas fa-history"></i>
+        Connection Attempts
+      </div>
+      <div class="attempts-list" id="serverAttemptsList">
+        <!-- Attempt dots will be added dynamically -->
+      </div>
+    </div>
+
+    <div class="server-manual-actions">
+      <button class="server-action-btn primary" onclick="serverModal.manualRetry()">
+        <i class="fas fa-redo"></i>
+        Retry Now
+      </button>
+      <button class="server-action-btn secondary" onclick="hideServerDownModal()">
+        <i class="fas fa-times"></i>
+        Dismiss
+      </button>
+    </div>
+  </div>
+</div>
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="js/system.js"></script>
 </body>

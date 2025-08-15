@@ -16,6 +16,11 @@ async function authFetch() {
             xhrFields: { withCredentials: true }
         });
     } catch (xhr) {
+        if (xhr.status === 0) {
+            console.error("🚫 Server unreachable");
+            showServerDownModal(); // This will now show the new modal with auto-retry
+            return;
+        }
         if (xhr.status === 401) {
             console.warn("⚠️ Token expired, trying refresh...");
             const refreshed = await refreshAccessToken();
@@ -52,6 +57,206 @@ $(document).ready(function () {
     // checkAuthentication();
     authFetch();
 });
+
+//server down create - start
+// Server Down Modal Class - Add to your existing JavaScript
+class ServerDownModal {
+    constructor() {
+        this.modal = document.getElementById('serverDownModal');
+        this.retrySection = document.getElementById('serverRetrySection');
+        this.successState = document.getElementById('serverSuccessState');
+        this.retrySpinner = document.getElementById('serverRetrySpinner');
+        this.retryText = document.getElementById('serverRetryText');
+        this.retryCountdown = document.getElementById('serverRetryCountdown');
+        this.attemptsList = document.getElementById('serverAttemptsList');
+
+        this.isVisible = false;
+        this.retryInterval = null;
+        this.countdownInterval = null;
+        this.attempts = 0;
+        this.maxAttempts = 10;
+        this.retryDelaySeconds = 5;
+        this.currentCountdown = this.retryDelaySeconds;
+        this.serverUpCallback = null;
+    }
+
+    show(serverCheckCallback, onServerUp) {
+        this.isVisible = true;
+        this.serverCheckCallback = serverCheckCallback;
+        this.serverUpCallback = onServerUp;
+        this.attempts = 0;
+        this.currentCountdown = this.retryDelaySeconds;
+
+        this.modal.classList.add('active');
+        this.retrySection.style.display = 'block';
+        this.successState.classList.remove('active');
+
+        this.updateAttemptsDisplay();
+        this.startRetryProcess();
+    }
+
+    hide() {
+        this.isVisible = false;
+        this.modal.classList.remove('active');
+        this.stopRetryProcess();
+    }
+
+    startRetryProcess() {
+        this.stopRetryProcess();
+        this.startCountdown();
+
+        this.retryInterval = setTimeout(() => {
+            this.attemptConnection();
+        }, this.retryDelaySeconds * 1000);
+    }
+
+    startCountdown() {
+        this.currentCountdown = this.retryDelaySeconds;
+        this.updateCountdownDisplay();
+
+        this.countdownInterval = setInterval(() => {
+            this.currentCountdown--;
+            this.updateCountdownDisplay();
+
+            if (this.currentCountdown <= 0) {
+                clearInterval(this.countdownInterval);
+            }
+        }, 1000);
+    }
+
+    async attemptConnection() {
+        if (!this.isVisible) return;
+
+        this.attempts++;
+        this.retryText.textContent = `Attempting connection (${this.attempts}/${this.maxAttempts})...`;
+        this.retrySpinner.classList.remove('hidden');
+
+        this.updateAttemptsDisplay();
+
+        try {
+            const isServerUp = await this.serverCheckCallback();
+
+            if (isServerUp) {
+                this.onConnectionSuccess();
+                return;
+            }
+
+            throw new Error('Server still down');
+
+        } catch (error) {
+            console.log('Connection attempt failed:', error);
+            this.onConnectionFailed();
+        }
+    }
+
+    onConnectionSuccess() {
+        this.retrySpinner.classList.add('hidden');
+        this.retrySection.style.display = 'none';
+        this.successState.classList.add('active');
+
+        if (this.serverUpCallback) {
+            this.serverUpCallback();
+        }
+
+        setTimeout(() => {
+            this.hide();
+        }, 3000);
+    }
+
+    onConnectionFailed() {
+        this.retrySpinner.classList.add('hidden');
+
+        if (this.attempts >= this.maxAttempts) {
+            this.retryText.textContent = 'Max attempts reached. Please try again later.';
+            return;
+        }
+
+        this.retryText.textContent = 'Connection failed. Retrying in...';
+        this.startCountdown();
+
+        this.retryInterval = setTimeout(() => {
+            this.attemptConnection();
+        }, this.retryDelaySeconds * 1000);
+    }
+
+    updateCountdownDisplay() {
+        this.retryCountdown.textContent = this.currentCountdown;
+    }
+
+    updateAttemptsDisplay() {
+        this.attemptsList.innerHTML = '';
+
+        for (let i = 0; i < this.maxAttempts; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'attempt-dot';
+
+            if (i < this.attempts - 1) {
+                dot.classList.add('failed');
+            } else if (i === this.attempts - 1) {
+                dot.classList.add('current');
+            }
+
+            this.attemptsList.appendChild(dot);
+        }
+    }
+
+    stopRetryProcess() {
+        if (this.retryInterval) {
+            clearTimeout(this.retryInterval);
+            this.retryInterval = null;
+        }
+
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
+    }
+
+    manualRetry() {
+        this.stopRetryProcess();
+        this.attemptConnection();
+    }
+}
+
+// Global instance
+const serverModal = new ServerDownModal();
+
+// Server check function - Modify this to match your backend endpoint
+async function checkServerStatus() {
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await $.ajax({
+            url: 'http://localhost:8080/auth/me', // Your actual endpoint
+            method: 'GET',
+            timeout: 5000,
+            contentType: 'application/json',
+            beforeSend: function (xhr) {
+                if (token) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                }
+            },
+            xhrFields: { withCredentials: true }
+        });
+        return true; // Server is up
+    } catch (error) {
+        return false; // Server is down
+    }
+}
+
+// Public functions for your application
+function showServerDownModal() {
+    serverModal.show(checkServerStatus, () => {
+        console.log("✅ Server is back online!");
+        // Add any additional logic here when server recovers
+        // like showing a success notification, refreshing data, etc.
+    });
+}
+
+function hideServerDownModal() {
+    serverModal.hide();
+}
+
+//server down - end
 
 // --- STATE MANAGEMENT ---
 let selectedPaymentMethod = null;
