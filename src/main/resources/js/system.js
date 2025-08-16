@@ -224,11 +224,10 @@ const serverModal = new ServerDownModal();
 // Server check function - Modify this to match your backend endpoint
 async function checkServerStatus() {
     try {
-        const token = localStorage.getItem('accessToken');
-        const response = await $.ajax({
-            url: 'http://localhost:8080/auth/me', // Your actual endpoint
+        const token = localStorage.getItem('accessToken'); // ✅ read latest token
+        await $.ajax({
+            url: 'http://localhost:8080/auth/me',
             method: 'GET',
-            timeout: 5000,
             contentType: 'application/json',
             beforeSend: function (xhr) {
                 if (token) {
@@ -237,9 +236,22 @@ async function checkServerStatus() {
             },
             xhrFields: { withCredentials: true }
         });
-        return true; // Server is up
-    } catch (error) {
-        return false; // Server is down
+        return true;
+    } catch (xhr) {
+        if (xhr.status === 401) {
+            console.warn("⚠️ Token expired, trying refresh...");
+            const refreshed = await refreshAccessToken();
+            if (!refreshed) {
+                console.warn("❌ Refresh failed, redirecting to login.");
+                window.location.href = 'http://localhost:63343/resources/signIn.html';
+                return;
+            }
+            return await checkServerStatus(); // Retry with new token
+        } else {
+            console.error("❌ Auth failed:", xhr);
+            throw xhr;
+        }
+        return false;
     }
 }
 
@@ -449,6 +461,20 @@ function logout() {
         renderAll();
         alert('Logged out successfully!');
         // You can add actual logout logic here
+
+        $.ajax({
+            url: 'http://localhost:8080/auth/logout',
+            method: 'POST',
+            xhrFields: { withCredentials: true }, // <-- this is required to send cookies!
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+            }
+        }).done(function() {
+            console.log("✅ Logged out");
+            localStorage.removeItem("accessToken"); // clear access token too
+            window.location.href = 'http://localhost:63343/resources/signIn.html';
+        });
+
     }
 }
 

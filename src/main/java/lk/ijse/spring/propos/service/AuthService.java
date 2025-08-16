@@ -124,7 +124,11 @@ public class AuthService {
             denyListService.addToDenyList(jti, expiry);
         }
 
-        if (refreshToken != null) refreshTokenRepository.deleteByToken(refreshToken);
+        if (refreshToken != null) {
+            denyListService.addToDenyList(refreshToken, new java.util.Date(System.currentTimeMillis() + 7*24*60*60*1000));
+            refreshTokenRepository.deleteByToken(refreshToken);
+            refreshTokenRepository.flush();
+        }
 
     }
 }

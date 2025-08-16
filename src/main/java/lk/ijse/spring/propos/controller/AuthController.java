@@ -72,6 +72,8 @@ public class AuthController {
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
+        cookie.setSecure(true);
+        cookie.setAttribute("SameSite", "Strict");
 
         return ResponseEntity.ok(Map.of("message", "Logout successfully..!"));
     }
