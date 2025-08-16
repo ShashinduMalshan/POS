@@ -1,41 +1,33 @@
-const accessToken = localStorage.getItem('accessToken');
-console.log(accessToken)
+// Global in-memory token
+let accessToken = null;
 
-async function authFetch() {
+// ✅ Try to refresh token when page loads
+async function initializeAuthentication() {
     try {
-        const token = localStorage.getItem('accessToken'); // ✅ read latest token
-        return await $.ajax({
-            url: 'http://localhost:8080/auth/me',
-            method: 'GET',
-            contentType: 'application/json',
-            beforeSend: function (xhr) {
-                if (token) {
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-                }
-            },
-            xhrFields: { withCredentials: true }
+        const res = await $.ajax({
+            url: 'http://localhost:8080/auth/refresh',
+            method: 'POST',
+            xhrFields: { withCredentials: true } // send refresh cookie automatically
         });
-    } catch (xhr) {
-        if (xhr.status === 0) {
-            console.error("🚫 Server unreachable");
-            showServerDownModal(); // This will now show the new modal with auto-retry
-            return;
-        }
-        if (xhr.status === 401) {
-            console.warn("⚠️ Token expired, trying refresh...");
-            const refreshed = await refreshAccessToken();
-            if (!refreshed) {
-                console.warn("❌ Refresh failed, redirecting to login.");
-                window.location.href = 'http://localhost:63343/resources/signIn.html';
-                return;
-            }
-            return await authFetch(); // Retry with new token
-        } else {
-            console.error("❌ Auth failed:", xhr);
-            throw xhr;
-        }
+
+        accessToken = res.accessToken; // keep in memory
+        console.log("🔑 Session restored. New token:", accessToken);
+        return true;
+
+    } catch (e) {
+        console.warn("❌ No valid refresh token. Redirecting to login...");
+        window.location.href = 'http://localhost:63343/resources/signIn.html';
+        return false;
     }
 }
+
+// Run as soon as the page loads
+$(document).ready(async function () {
+    await initializeAuthentication();
+    // ⬆️ If this fails, user is redirected.
+    // If success, you can now safely call your APIs with accessToken.
+});
+
 
 function refreshAccessToken() {
     return $.ajax({
@@ -51,12 +43,6 @@ function refreshAccessToken() {
         return false; // ✅ signal failure
     });
 }
-
-// Run as soon as the document is ready
-$(document).ready(function () {
-    // checkAuthentication();
-    authFetch();
-});
 
 //server down create - start
 // Server Down Modal Class - Add to your existing JavaScript
@@ -221,7 +207,7 @@ class ServerDownModal {
 // Global instance
 const serverModal = new ServerDownModal();
 
-// Server check function - Modify this to match your backend endpoint
+// Server check function
 async function checkServerStatus() {
     try {
         const token = localStorage.getItem('accessToken'); // ✅ read latest token
@@ -259,8 +245,6 @@ async function checkServerStatus() {
 function showServerDownModal() {
     serverModal.show(checkServerStatus, () => {
         console.log("✅ Server is back online!");
-        // Add any additional logic here when server recovers
-        // like showing a success notification, refreshing data, etc.
     });
 }
 
@@ -467,11 +451,11 @@ function logout() {
             method: 'POST',
             xhrFields: { withCredentials: true }, // <-- this is required to send cookies!
             headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+                'Authorization': 'Bearer ' + accessToken
             }
         }).done(function() {
             console.log("✅ Logged out");
-            localStorage.removeItem("accessToken"); // clear access token too
+            accessToken = null; // clear access token too
             window.location.href = 'http://localhost:63343/resources/signIn.html';
         });
 
@@ -753,7 +737,80 @@ function previewImage(input, previewId) { if (input.files && input.files[0]) { c
 function openCustomerModal() { openModal('customerModal'); }
 function closeCustomerModal() { closeModal('customerModal'); clearCustomerForm(); }
 function clearCustomerForm() { editingCustomerId = null; document.getElementById('editingCustomerId').value = ''; document.getElementById('customerNameInput').value = ''; document.getElementById('customerEmailInput').value = ''; document.getElementById('customerPhoneInput').value = ''; document.getElementById('customerPhotoInput').value = ''; document.getElementById('customerImagePreview').src = defaultCustomerImage; document.getElementById('customerModalTitle').textContent = 'Add New Customer'; }
-function saveCustomer() { const name = document.getElementById('customerNameInput').value.trim(); const email = document.getElementById('customerEmailInput').value.trim(); const phone = document.getElementById('customerPhoneInput').value.trim(); const imagePreview = document.getElementById('customerImagePreview').src; if (!name || !email) { alert('Name and Email are required.'); return; } const id = editingCustomerId || name.toLowerCase().replace(/\s+/g, '') + Date.now(); customers[id] = { name, email, phone, image: imagePreview }; renderAll(); closeCustomerModal(); }
+
+
+// ✅ Get a fresh token before doing anything
+async function ensureAccessToken() {
+
+        try {
+            const res = await $.ajax({
+                url: 'http://localhost:8080/auth/refresh',
+                method: 'POST',
+                xhrFields: { withCredentials: true } // refresh cookie is sent automatically
+            });
+            accessToken = res.accessToken; // keep it only in memory
+            console.log("♻️ Got new token:", accessToken);
+        } catch (e) {
+            console.warn("❌ Refresh failed. Redirecting to login...");
+            window.location.href = 'http://localhost:63343/resources/signIn.html';
+        }
+}
+
+// ✅ Save customer to DB
+async function saveCustomer() {
+    try {
+        await ensureAccessToken(); // always make sure token exists
+
+        const formData = new FormData();
+        formData.append("customer", new Blob([JSON.stringify({
+            name: $('#customerNameInput').val(),
+            email: $('#customerEmailInput').val(),
+            phone: $('#customerPhoneInput').val()
+        })], { type: "application/json" }));
+
+        const fileInput = $('#customerPhotoInput')[0];
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            formData.append("image", fileInput.files[0]);
+        }
+
+        const response = await $.ajax({
+            url: "http://localhost:8080/customer/save",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function (xhr) {
+                if (accessToken) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                }
+            },
+            xhrFields: { withCredentials: true }
+        });
+
+        alert("✅ Customer saved successfully!");
+        clearCustomerForm();
+        renderCustomerDropdown();
+        closeCustomerModal();
+
+    } catch (xhr) {
+        if (xhr.status === 0) {
+            console.error("🚫 Server unreachable");
+            showServerDownModal();
+            return;
+        }
+        if (xhr.status === 401) {
+            console.warn("⚠️ Token expired, refreshing...");
+            accessToken = null; // reset so ensureAccessToken() fetches again
+            await ensureAccessToken();
+            return await saveCustomer(); // retry
+        } else {
+            console.error("❌ Save failed:", xhr);
+            alert("Error: " + (xhr.responseText || "Failed to save customer"));
+        }
+    }
+}
+
+//function saveCustomer() { const name = document.getElementById('customerNameInput').value.trim(); const email = document.getElementById('customerEmailInput').value.trim(); const phone = document.getElementById('customerPhoneInput').value.trim(); const imagePreview = document.getElementById('customerImagePreview').src; if (!name || !email) { alert('Name and Email are required.'); return; } const id = editingCustomerId || name.toLowerCase().replace(/\s+/g, '') + Date.now(); customers[id] = { name, email, phone, image: imagePreview }; renderAll(); closeCustomerModal(); }
 function editCustomer(id) { const customer = customers[id]; if (!customer) return; clearCustomerForm(); editingCustomerId = id; document.getElementById('customerNameInput').value = customer.name; document.getElementById('customerEmailInput').value = customer.email; document.getElementById('customerPhoneInput').value = customer.phone; document.getElementById('customerImagePreview').src = customer.image; document.getElementById('customerModalTitle').textContent = 'Edit Customer'; openCustomerModal(); }
 function deleteCustomer(id) { if (confirm(`Delete ${customers[id].name}?`)) { delete customers[id]; renderAll(); } }
 function openItemModal() { openModal('itemModal'); }
