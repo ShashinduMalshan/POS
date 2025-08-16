@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
@@ -23,6 +25,16 @@ public class CustomerController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error saving customer: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
+        try {
+            List<CustomerDTO> customers = customerService.getAllCustomers();
+            return ResponseEntity.ok(customers);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
         }
     }
 }

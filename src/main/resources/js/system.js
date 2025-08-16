@@ -26,6 +26,8 @@ $(document).ready(async function () {
     await initializeAuthentication();
     // ⬆️ If this fails, user is redirected.
     // If success, you can now safely call your APIs with accessToken.
+    await loadAllCustomers();
+    renderAll();
 });
 
 
@@ -265,7 +267,7 @@ let orderHistory = [];
 const defaultCustomerImage = 'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg';
 const defaultItemImage = 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg';
 let products = { 'coffee-beans': { name: 'Premium Coffee Beans', price: 24.99, stock: 4, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=140&h=140&fit=crop' }, 'caramel-latte': { name: 'Iced Caramel Latte', price: 5.50, stock: 32, image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=140&h=140&fit=crop' }, 'artisan-chocolate': { name: 'Artisan Dark Chocolate', price: 12.50, stock: 3, image: 'https://images.unsplash.com/photo-1549007994-cb92caefc54b?w=140&h=140&fit=crop' }, 'gourmet-sandwich': { name: 'Gourmet Turkey Club', price: 15.99, stock: 22, image: 'https://images.unsplash.com/photo-1553909489-cd47e0ef937f?w=140&h=140&fit=crop' } };
-let customers = { 'johndoe': { name: 'John Doe', email: 'john@example.com', phone: '+15551234567', image: 'https://randomuser.me/api/portraits/men/32.jpg' }, 'sarahwilson': { name: 'Sarah Wilson', email: 'sarah@example.com', phone: '+15552345678', image: 'https://randomuser.me/api/portraits/women/44.jpg' }, 'mikejohnson': { name: 'Mike Johnson', email: 'mike@example.com', phone: '+15553456789', image: 'https://randomuser.me/api/portraits/men/46.jpg' } };
+let customers = {};
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -792,6 +794,8 @@ async function saveCustomer() {
         renderCustomerDropdown();
         closeCustomerModal();
 
+        await loadAllCustomers();
+
     } catch (xhr) {
         if (xhr.status === 0) {
             console.error("🚫 Server unreachable");
@@ -809,6 +813,113 @@ async function saveCustomer() {
         }
     }
 }
+
+// ✅ Load all customers from backend
+async function loadAllCustomers() {
+    try {
+        await ensureAccessToken(); // always make sure token exists
+
+        const response = await $.ajax({
+            url: "http://localhost:8080/customer/all",
+            type: "GET",
+            beforeSend: function (xhr) {
+                if (accessToken) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                }
+            },
+            xhrFields: { withCredentials: true }
+        });
+
+        // Convert array to object with index as key for compatibility
+        customers = {};
+        response.forEach((customer, index) => {
+            customers[index] = {
+                name: customer.name,
+                email: customer.email,
+                phone: customer.phone,
+                image: customer.imagePath || 'default-avatar.png' // fallback image
+            };
+        });
+
+        console.log("✅ Customers loaded:", customers);
+        renderCustomerTable();
+        renderCustomerDropdown();
+
+    } catch (xhr) {
+        if (xhr.status === 0) {
+            console.error("🚫 Server unreachable");
+            showServerDownModal();
+            return;
+        }
+        if (xhr.status === 401) {
+            console.warn("⚠️ Token expired, refreshing...");
+            accessToken = null; // reset so ensureAccessToken() fetches again
+            await ensureAccessToken();
+            return await loadAllCustomers(); // retry
+        } else {
+            console.error("⌛ Load failed:", xhr);
+            alert("Error: " + (xhr.responseText || "Failed to load customers"));
+        }
+    }
+}
+
+// ✅ Render customer table (updated to handle image paths correctly)
+function renderCustomerTable() {
+    const tableBody = document.getElementById('customerTableBody');
+    if (!tableBody) {
+        console.warn("customerTableBody element not found");
+        return;
+    }
+
+    tableBody.innerHTML = '';
+    Object.entries(customers).forEach(([id, customer]) => {
+        const row = document.createElement('tr');
+
+        // Handle image path - if it starts with uploads/, prepend server URL
+        let imageUrl = customer.image;
+        if (imageUrl && imageUrl.startsWith('uploads/')) {
+            imageUrl = `http://localhost:8080/${imageUrl}`;
+        } else if (!imageUrl || imageUrl === 'default-avatar.png') {
+            imageUrl = 'assets/default-avatar.png'; // local fallback
+        }
+
+        row.innerHTML = `
+            <td>
+                <img src="${imageUrl}" 
+                     alt="${customer.name}" 
+                     class="customer-avatar"
+                     onerror="this.src='assets/default-avatar.png'">
+            </td>
+            <td>
+                <div class="customer-name">${customer.name}</div>
+                <div class="customer-email-modal">${customer.email}</div>
+            </td>
+            <td>${customer.phone}</td>
+            <td class="action-buttons">
+                <button title="Edit" onclick="editCustomer('${id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button title="Delete" class="delete-btn" onclick="deleteCustomer('${id}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// ✅ Render customer dropdown (for other forms that might need customer selection)
+function renderCustomerDropdown() {
+    const select = document.getElementById('customerSelect');
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Walk-in Customer</option>';
+    Object.entries(customers).forEach(([id, customer]) => {
+        const option = document.createElement('option');
+        option.value = id; option.textContent = customer.name; select.appendChild(option);
+    });
+    select.value = currentValue;
+}
+
 
 //function saveCustomer() { const name = document.getElementById('customerNameInput').value.trim(); const email = document.getElementById('customerEmailInput').value.trim(); const phone = document.getElementById('customerPhoneInput').value.trim(); const imagePreview = document.getElementById('customerImagePreview').src; if (!name || !email) { alert('Name and Email are required.'); return; } const id = editingCustomerId || name.toLowerCase().replace(/\s+/g, '') + Date.now(); customers[id] = { name, email, phone, image: imagePreview }; renderAll(); closeCustomerModal(); }
 function editCustomer(id) { const customer = customers[id]; if (!customer) return; clearCustomerForm(); editingCustomerId = id; document.getElementById('customerNameInput').value = customer.name; document.getElementById('customerEmailInput').value = customer.email; document.getElementById('customerPhoneInput').value = customer.phone; document.getElementById('customerImagePreview').src = customer.image; document.getElementById('customerModalTitle').textContent = 'Edit Customer'; openCustomerModal(); }
@@ -850,16 +961,19 @@ function filterProducts(searchTerm) {
         card.style.display = name.includes(term) ? 'flex' : 'none';
     });
 }
+
+
+
 // Simplified renderCustomerTable functions from previous snippets.
-function renderCustomerTable() {
-    const tableBody = document.getElementById('customerTableBody');
-    tableBody.innerHTML = '';
-    Object.entries(customers).forEach(([id, customer]) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td><img src="${customer.image}" alt="${customer.name}" class="customer-avatar"></td><td><div class="customer-name">${customer.name}</div><div class="customer-email-modal">${customer.email}</div></td><td>${customer.phone}</td><td class="action-buttons"><button title="Edit" onclick="editCustomer('${id}')"><i class="fas fa-edit"></i></button><button title="Delete" class="delete-btn" onclick="deleteCustomer('${id}')"><i class="fas fa-trash-alt"></i></button></td>`;
-        tableBody.appendChild(row);
-    });
-}
+// function renderCustomerTable() {
+//     const tableBody = document.getElementById('customerTableBody');
+//     tableBody.innerHTML = '';
+//     Object.entries(customers).forEach(([id, customer]) => {
+//         const row = document.createElement('tr');
+//         row.innerHTML = `<td><img src="${customer.image}" alt="${customer.name}" class="customer-avatar"></td><td><div class="customer-name">${customer.name}</div><div class="customer-email-modal">${customer.email}</div></td><td>${customer.phone}</td><td class="action-buttons"><button title="Edit" onclick="editCustomer('${id}')"><i class="fas fa-edit"></i></button><button title="Delete" class="delete-btn" onclick="deleteCustomer('${id}')"><i class="fas fa-trash-alt"></i></button></td>`;
+//         tableBody.appendChild(row);
+//     });
+// }
 
 function renderItemTable() {
     const tableBody = document.getElementById('itemTableBody');
@@ -871,16 +985,7 @@ function renderItemTable() {
     });
 }
 
-function renderCustomerDropdown() {
-    const select = document.getElementById('customerSelect');
-    const currentValue = select.value;
-    select.innerHTML = '<option value="">Walk-in Customer</option>';
-    Object.entries(customers).forEach(([id, customer]) => {
-        const option = document.createElement('option');
-        option.value = id; option.textContent = customer.name; select.appendChild(option);
-    });
-    select.value = currentValue;
-}
+
 
 // ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE =====
 // This is the key fix - expose all functions to the global window object

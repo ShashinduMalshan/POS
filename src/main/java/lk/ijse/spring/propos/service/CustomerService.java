@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,5 +45,23 @@ public class CustomerService {
 
         customerRepository.save(customer);
         return "Customer saved successfully!";
+    }
+
+
+    public List<CustomerDTO> getAllCustomers() {
+        List<Customer> customers = customerRepository.findAll();
+        return customers.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    private CustomerDTO convertToDTO(Customer customer) {
+        return new CustomerDTO(
+                customer.getName(),
+                customer.getEmail(),
+                customer.getPhone(),
+                customer.getImagePath()
+        );
     }
 }
