@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- jQuery for AJAX requests -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- Custom Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles for a polished look and feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light gray background */
+        }
+
+        /* Modal transition styles */
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        /* Notification toast styles */
+        .toast {
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* Customer card hover effect */
+        .customer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .customer-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+<!-- Main Container -->
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-center mb-8 pb-4 border-b border-gray-200">
+        <div class="flex items-center gap-3 mb-4 sm:mb-0">
+            <i class="fas fa-users text-3xl text-indigo-600"></i>
+            <h1 class="text-3xl font-bold text-gray-800">Customer Management</h1>
+        </div>
+        <button id="addCustomerBtn" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 transition duration-300">
+            <i class="fas fa-plus mr-2"></i> Add New Customer
+        </button>
+    </header>
+
+    <!-- Loading Indicator -->
+    <div id="loader" class="text-center py-10 hidden">
+        <div class="spinner h-12 w-12 border-4 border-t-indigo-600 border-r-indigo-600 border-b-indigo-600 border-l-transparent rounded-full mx-auto"></div>
+        <p class="mt-4 text-gray-600 font-medium">Loading Customers...</p>
+    </div>
+
+    <!-- No Customers Message -->
+    <div id="noCustomersMessage" class="text-center py-20 bg-white rounded-lg shadow hidden">
+        <i class="fas fa-user-slash text-5xl text-gray-400"></i>
+        <h2 class="mt-4 text-2xl font-semibold text-gray-700">No Customers Found</h2>
+        <p class="mt-2 text-gray-500">Click "Add New Customer" to get started.</p>
+    </div>
+
+    <!-- Customer Grid -->
+    <div id="customerGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Customer cards will be dynamically inserted here -->
+    </div>
+</div>
+
+<!-- Customer Form Modal -->
+<div id="customerModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+        <div class="p-6 border-b border-gray-200">
+            <h2 id="modalTitle" class="text-2xl font-bold text-gray-800">Add New Customer</h2>
+        </div>
+        <form id="customerForm" class="p-6 space-y-4">
+            <input type="hidden" id="customerId">
+
+            <!-- Image Upload -->
+            <div class="flex items-center space-x-6">
+                <img id="customerImagePreview" src="https://placehold.co/100x100/E2E8F0/4A5568?text=Photo" alt="Customer photo" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200">
+                <label for="customerPhotoInput" class="cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <span>Upload Photo</span>
+                    <input id="customerPhotoInput" type="file" class="sr-only" accept="image/*">
+                </label>
+            </div>
+
+            <!-- Form Fields -->
+            <div>
+                <label for="customerNameInput" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="customerNameInput" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="customerEmailInput" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="customerEmailInput" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="customerPhoneInput" class="block text-sm font-medium text-gray-700">Phone</label>
+                <input type="tel" id="customerPhoneInput" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end pt-4 space-x-3">
+                <button type="button" id="cancelBtn" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">Cancel</button>
+                <button type="submit" id="saveBtn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 flex items-center">
+                    <span id="saveBtnText">Save Customer</span>
+                    <div id="saveSpinner" class="spinner h-5 w-5 border-2 border-t-white border-r-white border-b-white border-l-transparent rounded-full ml-2 hidden"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+        </div>
+        <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Delete Customer</h3>
+        <div class="mt-2">
+            <p class="text-sm text-gray-500">Are you sure you want to delete this customer? This action cannot be undone.</p>
+        </div>
+        <div class="mt-6 flex justify-center space-x-4">
+            <button id="cancelDeleteBtn" type="button" class="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Cancel</button>
+            <button id="confirmDeleteBtn" type="button" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast Container -->
+<div id="toastContainer" class="fixed top-5 right-5 z-50 space-y-3 w-full max-w-xs"></div>
+
+<script>
+    $(document).ready(function() {
+        // --- CONFIG & STATE ---
+        const API_BASE_URL = 'http://localhost:8080';
+        let accessToken = null; // Store token in memory for security
+
+        // --- UI ELEMENT SELECTORS ---
+        const $loader = $('#loader');
+        const $customerGrid = $('#customerGrid');
+        const $noCustomersMessage = $('#noCustomersMessage');
+        const $customerModal = $('#customerModal');
+        const $deleteModal = $('#deleteModal');
+
+        // --- AUTHENTICATION ---
+        /**
+         * Tries to get a new access token using the refresh token cookie.
+         * Redirects to login page on failure.
+         */
+        async function initializeAuthentication() {
+            try {
+                const response = await $.ajax({
+                    url: `${API_BASE_URL}/auth/refresh`,
+                    method: 'POST',
+                    xhrFields: { withCredentials: true } // Sends HttpOnly cookie
+                });
+                accessToken = response.accessToken;
+                console.log("🔑 Session restored successfully.");
+                return true;
+            } catch (error) {
+                console.warn("❌ No valid session found. Redirecting to login.");
+                // Replace with your actual login page URL
+                window.location.href = 'about:blank'; // Redirect to a blank page for demo
+                return false;
+            }
+        }
+
+        // --- API CALLS ---
+        /**
+         * A wrapper for jQuery AJAX to handle authentication and errors.
+         * @param {object} options - jQuery AJAX options.
+         * @returns {Promise} - The promise from the AJAX call.
+         */
+        async function apiRequest(options) {
+            // Ensure we have a valid access token before making a request
+            if (!accessToken) {
+                const refreshed = await initializeAuthentication();
+                if (!refreshed) throw new Error("Authentication failed.");
+            }
+
+            // Set default headers and credentials
+            const defaultOptions = {
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                },
+                xhrFields: { withCredentials: true },
+            };
+
+            // For FormData, let jQuery handle contentType
+            if (options.data instanceof FormData) {
+                options.contentType = false;
+                options.processData = false;
+            } else {
+                defaultOptions.contentType = 'application/json';
+                if (options.data) options.data = JSON.stringify(options.data);
+            }
+
+            return $.ajax({ ...defaultOptions, ...options }).catch(error => {
+                if (error.status === 401) { // Unauthorized
+                    console.warn("⚠️ Token expired or invalid. Attempting refresh...");
+                    accessToken = null; // Clear expired token
+                    // Retry the request after refreshing the token
+                    return initializeAuthentication().then(() => apiRequest(options));
+                }
+                // For other errors, just re-throw
+                throw error;
+            });
+        }
+
+        // --- CUSTOMER DATA LOGIC ---
+        /**
+         * Fetches all customers from the backend and renders them.
+         */
+        async function loadCustomers() {
+            $loader.show();
+            $customerGrid.empty();
+            $noCustomersMessage.hide();
+
+            try {
+                const customers = await apiRequest({
+                    url: `${API_BASE_URL}/customer/all`,
+                    method: 'GET'
+                });
+
+                if (customers && customers.length > 0) {
+                    customers.forEach(renderCustomerCard);
+                } else {
+                    $noCustomersMessage.show();
+                }
+            } catch (error) {
+                console.error("❌ Failed to load customers:", error);
+                showToast('Failed to load customers. Please try again.', 'error');
+            } finally {
+                $loader.hide();
+            }
+        }
+
+        /**
+         * Deletes a customer by ID after confirmation.
+         * @param {number} customerId - The ID of the customer to delete.
+         */
+        function deleteCustomer(customerId) {
+            $deleteModal.removeClass('hidden');
+
+            // Use .off() to prevent multiple click handlers from stacking up
+            $('#confirmDeleteBtn').off('click').on('click', async () => {
+                try {
+                    await apiRequest({
+                        url: `${API_BASE_URL}/customer/${customerId}`,
+                        method: 'DELETE'
+                    });
+                    showToast('Customer deleted successfully.', 'success');
+                    loadCustomers(); // Refresh the list
+                } catch (error) {
+                    console.error("❌ Failed to delete customer:", error);
+                    showToast('Failed to delete customer.', 'error');
+                } finally {
+                    $deleteModal.addClass('hidden');
+                }
+            });
+        }
+
+        // --- UI RENDERING & MODALS ---
+        /**
+         * Creates and appends a customer card to the grid.
+         * @param {object} customer - The customer data object.
+         */
+        function renderCustomerCard(customer) {
+            // Construct image URL, handling cases where it might be null or a relative path
+            let imageUrl = 'https://placehold.co/400x300/E2E8F0/4A5568?text=No+Image';
+            if (customer.imagePath) {
+                // Assuming the backend serves images from the root
+                imageUrl = `${API_BASE_URL}/${customer.imagePath.replace(/\\/g, '/')}`;
+            }
+
+            const cardHtml = `
+                    <div class="customer-card bg-white rounded-lg shadow-md overflow-hidden">
+                        <img src="${imageUrl}" alt="${customer.name}" class="w-full h-48 object-cover" onerror="this.src='https://placehold.co/400x300/E2E8F0/4A5568?text=No+Image';">
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-gray-800 truncate">${customer.name}</h3>
+                            <p class="text-sm text-gray-500 truncate">${customer.email || 'No email'}</p>
+                            <p class="text-sm text-gray-500">${customer.phone || 'No phone'}</p>
+                        </div>
+                        <div class="px-4 pb-4 flex justify-end space-x-2">
+                            <button class="edit-btn text-gray-500 hover:text-indigo-600" data-customer-id="${customer.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn text-gray-500 hover:text-red-600" data-customer-id="${customer.id}" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            $customerGrid.append(cardHtml);
+        }
+
+        /**
+         * Opens the customer modal for adding or editing.
+         * @param {object|null} customer - Customer data to edit, or null to add.
+         */
+        async function openCustomerModal(customer = null) {
+            $('#customerForm')[0].reset();
+            $('#customerImagePreview').attr('src', 'https://placehold.co/100x100/E2E8F0/4A5568?text=Photo');
+
+            if (customer) {
+                // EDIT MODE
+                $('#modalTitle').text('Edit Customer');
+                $('#saveBtnText').text('Update Customer');
+                $('#customerId').val(customer.id);
+                $('#customerNameInput').val(customer.name);
+                $('#customerEmailInput').val(customer.email);
+                $('#customerPhoneInput').val(customer.phone);
+                if (customer.imagePath) {
+                    $('#customerImagePreview').attr('src', `${API_BASE_URL}/${customer.imagePath.replace(/\\/g, '/')}`);
+                }
+            } else {
+                // ADD MODE
+                $('#modalTitle').text('Add New Customer');
+                $('#saveBtnText').text('Save Customer');
+                $('#customerId').val('');
+            }
+            $customerModal.removeClass('hidden');
+        }
+
+        /**
+         * Displays a notification toast.
+         * @param {string} message - The message to display.
+         * @param {string} type - 'success' or 'error'.
+         */
+        function showToast(message, type = 'success') {
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+            const toast = $(`
+                    <div class="toast ${bgColor} text-white p-4 rounded-lg shadow-lg flex items-center space-x-3">
+                        <i class="fas ${icon}"></i>
+                        <span>${message}</span>
+                    </div>
+                `);
+
+            $('#toastContainer').append(toast);
+
+            // Animate in
+            setTimeout(() => toast.addClass('show'), 100);
+
+            // Animate out and remove after 4 seconds
+            setTimeout(() => {
+                toast.removeClass('show');
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        // --- EVENT HANDLERS ---
+        $('#addCustomerBtn').on('click', () => openCustomerModal());
+        $('#cancelBtn, #customerModal').on('click', function(e) {
+            if (e.target === this) $customerModal.addClass('hidden');
+        });
+        $('#cancelDeleteBtn, #deleteModal').on('click', function(e) {
+            if (e.target === this) $deleteModal.addClass('hidden');
+        });
+
+        // Handle image preview
+        $('#customerPhotoInput').on('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => $('#customerImagePreview').attr('src', e.target.result);
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // Delegated event handlers for edit and delete buttons
+        $customerGrid.on('click', '.edit-btn', async function() {
+            const customerId = $(this).data('customer-id');
+            try {
+                const customer = await apiRequest({
+                    url: `${API_BASE_URL}/customer/${customerId}`,
+                    method: 'GET'
+                });
+                openCustomerModal(customer);
+            } catch (error) {
+                console.error("❌ Failed to fetch customer details for editing:", error);
+                showToast('Could not load customer details.', 'error');
+            }
+        });
+
+        $customerGrid.on('click', '.delete-btn', function() {
+            const customerId = $(this).data('customer-id');
+            deleteCustomer(customerId);
+        });
+
+        // Handle form submission for both create and update
+        $('#customerForm').on('submit', async function(e) {
+            e.preventDefault();
+
+            $('#saveBtn').prop('disabled', true);
+            $('#saveBtnText').hide();
+            $('#saveSpinner').show();
+
+            const customerId = $('#customerId').val();
+            const isUpdate = !!customerId;
+
+            const customerData = {
+                name: $('#customerNameInput').val(),
+                email: $('#customerEmailInput').val(),
+                phone: $('#customerPhoneInput').val()
+            };
+
+            const formData = new FormData();
+            formData.append("customer", new Blob([JSON.stringify(customerData)], { type: "application/json" }));
+
+            const imageFile = $('#customerPhotoInput')[0].files[0];
+            if (imageFile) {
+                formData.append("image", imageFile);
+            }
+
+            try {
+                const url = isUpdate ? `${API_BASE_URL}/customer/${customerId}` : `${API_BASE_URL}/customer/save`;
+                const method = isUpdate ? 'PUT' : 'POST';
+
+                await apiRequest({ url, method, data: formData });
+
+                showToast(`Customer ${isUpdate ? 'updated' : 'saved'} successfully!`, 'success');
+                $customerModal.addClass('hidden');
+                loadCustomers(); // Refresh the grid
+            } catch (error) {
+                console.error("❌ Error saving customer:", error);
+                showToast('Failed to save customer.', 'error');
+            } finally {
+                $('#saveBtn').prop('disabled', false);
+                $('#saveBtnText').show();
+                $('#saveSpinner').hide();
+            }
+        });
+
+        // --- INITIALIZATION ---
+        (async function() {
+            const authenticated = await initializeAuthentication();
+            if (authenticated) {
+                loadCustomers();
+            }
+        })();
+    });
+</script>
+</body>
+</html>
