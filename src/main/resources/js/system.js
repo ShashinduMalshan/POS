@@ -879,6 +879,7 @@ function renderCustomerTable() {
         let imageUrl = customer.image;
         if (imageUrl && imageUrl.startsWith('uploads/')) {
             imageUrl = `http://localhost:8080/${imageUrl}`;
+            console.log('🎦 Image Url:', imageUrl);
         } else if (!imageUrl || imageUrl === 'default-avatar.png') {
             imageUrl = 'assets/default-avatar.png'; // local fallback
         }
@@ -921,9 +922,86 @@ function renderCustomerDropdown() {
 }
 
 
+// ✅ Edit customer function - WITH DEBUGGING AND MODAL FALLBACK
+async function editCustomer(id) {
+    
+    console.log('Going to edit customer with id: ', id);
+
+    console.log("=== EDIT CUSTOMER DEBUG ===");
+    console.log("Received ID:", id, typeof id);
+    console.log("All customers:", customers);
+    console.log("Customer exists?", customers[id]);
+
+    let response;
+
+    // Validate ID
+    if (!id || id === 0 || id === '0') {
+        console.error("Invalid customer ID:", id);
+        alert("Invalid customer ID. Please refresh the page and try again.");
+        return;
+    }
+
+    try {
+        await ensureAccessToken();
+
+        console.log("Making request to:", `http://localhost:8080/customer/${id}`);
+
+        response = await $.ajax({
+            url: `http://localhost:8080/customer/${id}`,
+            type: "GET",
+            beforeSend: function (xhr) {
+                if (accessToken) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                }
+            },
+            xhrFields: {withCredentials: true}
+        });
+
+        console.log("Edit response I'm here man trust me:", response);
+    } catch (xhr) {
+        console.error("Edit request failed:", xhr);
+
+    }
+
+        // Fill the form with existing customer data
+        $('#customerNameInput').val(response.name);
+        $('#customerEmailInput').val(response.email);
+        $('#customerPhoneInput').val(response.phone);
+    //
+    //     // Store the customer ID for updating
+    //     $('#customerForm').data('editing-id', id);
+    //
+    //     // Change the form title and button text
+    //     $('.modal-title').text('Edit Customer');
+    //     $('#saveCustomerBtn').text('Update Customer');
+    //
+    //     // Show the modal - multiple fallbacks
+    //     showCustomerModal();
+    //
+    // } catch (xhr) {
+    //     console.error("Edit request failed:", xhr);
+    //     if (xhr.status === 0) {
+    //         console.error("🚫 Server unreachable");
+    //         showServerDownModal();
+    //         return;
+    //     }
+    //     if (xhr.status === 401) {
+    //         console.warn("⚠️ Token expired, refreshing...");
+    //         accessToken = null;
+    //         await ensureAccessToken();
+    //         return await editCustomer(id);
+    //     } else {
+    //         console.error("⌛ Edit failed:", xhr);
+    //         alert("Error: " + (xhr.responseText || "Failed to load customer for editing"));
+    //     }
+    // }
+
+}
+
+
 //function saveCustomer() { const name = document.getElementById('customerNameInput').value.trim(); const email = document.getElementById('customerEmailInput').value.trim(); const phone = document.getElementById('customerPhoneInput').value.trim(); const imagePreview = document.getElementById('customerImagePreview').src; if (!name || !email) { alert('Name and Email are required.'); return; } const id = editingCustomerId || name.toLowerCase().replace(/\s+/g, '') + Date.now(); customers[id] = { name, email, phone, image: imagePreview }; renderAll(); closeCustomerModal(); }
-function editCustomer(id) { const customer = customers[id]; if (!customer) return; clearCustomerForm(); editingCustomerId = id; document.getElementById('customerNameInput').value = customer.name; document.getElementById('customerEmailInput').value = customer.email; document.getElementById('customerPhoneInput').value = customer.phone; document.getElementById('customerImagePreview').src = customer.image; document.getElementById('customerModalTitle').textContent = 'Edit Customer'; openCustomerModal(); }
-function deleteCustomer(id) { if (confirm(`Delete ${customers[id].name}?`)) { delete customers[id]; renderAll(); } }
+//function editCustomer(id) { const customer = customers[id]; if (!customer) return; clearCustomerForm(); editingCustomerId = id; document.getElementById('customerNameInput').value = customer.name; document.getElementById('customerEmailInput').value = customer.email; document.getElementById('customerPhoneInput').value = customer.phone; document.getElementById('customerImagePreview').src = customer.image; document.getElementById('customerModalTitle').textContent = 'Edit Customer'; openCustomerModal(); }
+//function deleteCustomer(id) { if (confirm(`Delete ${customers[id].name}?`)) { delete customers[id]; renderAll(); } }
 function openItemModal() { openModal('itemModal'); }
 function closeItemModal() { closeModal('itemModal'); clearItemForm(); }
 function clearItemForm() { editingItemId = null; document.getElementById('itemNameInput').value = ''; document.getElementById('itemPriceInput').value = ''; document.getElementById('itemStockInput').value = ''; document.getElementById('itemPhotoInput').value = ''; document.getElementById('itemImagePreview').src = defaultItemImage; document.getElementById('itemModalTitle').textContent = 'Add New Item'; }
@@ -961,19 +1039,6 @@ function filterProducts(searchTerm) {
         card.style.display = name.includes(term) ? 'flex' : 'none';
     });
 }
-
-
-
-// Simplified renderCustomerTable functions from previous snippets.
-// function renderCustomerTable() {
-//     const tableBody = document.getElementById('customerTableBody');
-//     tableBody.innerHTML = '';
-//     Object.entries(customers).forEach(([id, customer]) => {
-//         const row = document.createElement('tr');
-//         row.innerHTML = `<td><img src="${customer.image}" alt="${customer.name}" class="customer-avatar"></td><td><div class="customer-name">${customer.name}</div><div class="customer-email-modal">${customer.email}</div></td><td>${customer.phone}</td><td class="action-buttons"><button title="Edit" onclick="editCustomer('${id}')"><i class="fas fa-edit"></i></button><button title="Delete" class="delete-btn" onclick="deleteCustomer('${id}')"><i class="fas fa-trash-alt"></i></button></td>`;
-//         tableBody.appendChild(row);
-//     });
-// }
 
 function renderItemTable() {
     const tableBody = document.getElementById('itemTableBody');
