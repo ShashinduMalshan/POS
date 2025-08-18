@@ -37,4 +37,38 @@ public class CustomerController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
+        try {
+            CustomerDTO customer = customerService.getCustomerById(id);
+            return ResponseEntity.ok(customer);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateCustomer(
+            @PathVariable Long id,
+            @RequestPart("customer") CustomerDTO customerDTO,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        try {
+            String result = customerService.updateCustomer(id, customerDTO, image);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error updating customer: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteCustomer(@PathVariable Long id) {
+        try {
+            String result = customerService.deleteCustomer(id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error deleting customer: " + e.getMessage());
+        }
+    }
 }
