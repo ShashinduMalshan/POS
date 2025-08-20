@@ -102,18 +102,6 @@ public class AuthService {
         return "User registered successfully";
     }
 
-//    @Transactional
-//    public void logout(String refreshToken) {
-//        //refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenRepository::delete);
-//        String username = jwtUtil.extractUsername(refreshToken);
-//        refreshTokenRepository.deleteByUser_Username(username);
-//    }
-
-//    @Transactional
-//    public void logout(String username) {
-//        refreshTokenRepository.deleteByUser_Username(username);
-//    }
-
     @Transactional
     public void logout(String accessToken, String refreshToken) {
 
