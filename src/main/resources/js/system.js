@@ -16,7 +16,7 @@ async function initializeAuthentication() {
 
     } catch (e) {
         console.warn("❌ No valid refresh token. Redirecting to login...");
-        window.location.href = 'http://localhost:63343/resources/signIn.html';
+        window.location.href = '../../signIn.html';
         return false;
     }
 }
@@ -231,7 +231,7 @@ async function checkServerStatus() {
             const refreshed = await refreshAccessToken();
             if (!refreshed) {
                 console.warn("❌ Refresh failed, redirecting to login.");
-                window.location.href = 'http://localhost:63343/resources/signIn.html';
+                window.location.href = '../../signIn.html';
                 return;
             }
             return await checkServerStatus(); // Retry with new token
@@ -458,7 +458,7 @@ function logout() {
         }).done(function() {
             console.log("✅ Logged out");
             accessToken = null; // clear access token too
-            window.location.href = 'http://localhost:63343/resources/signIn.html';
+            window.location.href = '../../signIn.html';
         });
 
     }
@@ -754,7 +754,7 @@ async function ensureAccessToken() {
             console.log("♻️ Got new token:", accessToken);
         } catch (e) {
             console.warn("❌ Refresh failed. Redirecting to login...");
-            window.location.href = 'http://localhost:63343/resources/signIn.html';
+            window.location.href = '../../signIn.html';
         }
 }
 
