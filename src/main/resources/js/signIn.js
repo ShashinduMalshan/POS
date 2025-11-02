@@ -67,9 +67,10 @@ function showLoginSuccess(role) {
             successMsg.remove();
 
             if (userRole === 'ADMIN') {
-                window.location.href = 'http://localhost:63343/resources/inventory.html';
+                window.location.href = 'http://localhost:63342/POS/src/main/inventory.html';
+
             } else if (userRole === 'CASHIER') {
-                window.location.href = 'http://localhost:63343/resources/system.html';
+                window.location.href = '../../system.html';
             }
 
 
