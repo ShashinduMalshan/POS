@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Management - Pro+</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link type="text/css" rel="stylesheet" href="resources/css/inventory.css">
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon"><i class="fas fa-boxes-stacked"></i></div>
+      <span class="logo-text">Inv. Mgmt</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-link active" onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</a>
+      <a class="nav-link" onclick="showPage('inventory')"><i class="fas fa-box-archive"></i> Item Catalog</a>
+      <a class="nav-link" onclick="showPage('purchase-orders')"><i class="fas fa-truck-loading"></i> Purchase Orders</a>
+      <a class="nav-link" onclick="showPage('reports')"><i class="fas fa-file-alt"></i> Reports</a>
+      <a class="nav-link" onclick="showPage('settings')"><i class="fas fa-cog"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="btn btn-secondary" style="width:100%;"><i class="fas fa-cash-register"></i> Go to POS</a>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div class="main-wrapper">
+    <header class="main-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        <h1 class="header-title" id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="header-actions">
+        <div class="theme-switcher">
+          <button id="theme-toggle-btn" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+        </div>
+        <div class="user-menu">
+          <div class="user-avatar" title="Jane Doe">JD</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- DASHBOARD PAGE -->
+      <div id="dashboard-page" class="page-content">
+        <div class="stat-cards-grid">
+          <div class="stat-card"><div class="stat-icon primary"><i class="fas fa-boxes-stacked"></i></div><div class="stat-info"><div class="value" id="totalItems">0</div><div class="label">Total Items</div></div></div>
+          <div class="stat-card"><div class="stat-icon success"><i class="fas fa-warehouse"></i></div><div class="stat-info"><div class="value" id="totalStock">0</div><div class="label">Total Stock Quantity</div></div></div>
+          <div class="stat-card"><div class="stat-icon warning"><i class="fas fa-triangle-exclamation"></i></div><div class="stat-info"><div class="value" id="lowStockItems">0</div><div class="label">Low Stock Items</div></div></div>
+          <div class="stat-card"><div class="stat-icon danger"><i class="fas fa-calendar-times"></i></div><div class="stat-info"><div class="value" id="expiredItems">0</div><div class="label">Expired Items</div></div></div>
+        </div>
+        <div class="content-panel"><div class="panel-header"><h2 class="panel-title">Inventory Value by Category</h2></div><div class="panel-body"><div class="chart-container"><canvas id="inventoryChart"></canvas></div></div></div>
+      </div>
+
+      <!-- INVENTORY PAGE -->
+      <div id="inventory-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Item Catalog</h2><button class="btn btn-primary" onclick="openItemModal()"><i class="fas fa-plus"></i> Add New Item</button></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="inventoryTable"><thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Stock</th><th>Reorder Point</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+      </div>
+
+      <!-- PURCHASE ORDERS PAGE -->
+      <div id="purchase-orders-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Purchase Orders</h2><button class="btn btn-primary" onclick="openPOModal()"><i class="fas fa-plus"></i> Create PO</button></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="poTable"><thead><tr><th>PO Number</th><th>Supplier</th><th>Date</th><th>Total Items</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+      </div>
+
+      <!-- REPORTS PAGE -->
+      <div id="reports-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Reports</h2><button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button></div>
+        <div class="content-panel">
+          <div class="panel-body">
+            <div class="report-container" id="reportContainer">
+              <h1 style="text-align:center; margin-bottom: 1rem;">Inventory Report</h1>
+              <p style="text-align:center; margin-bottom: 2rem; color: var(--text-muted)">Generated on: <span id="reportDate"></span></p>
+
+              <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Low Stock Items</h3>
+              <div class="table-wrapper"><table id="lowStockReportTable"><thead><tr><th>Item</th><th>SKU</th><th>Current Stock</th><th>Reorder Point</th></tr></thead><tbody></tbody></table></div>
+
+              <h3 style="margin-top: 2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Inventory Value</h3>
+              <div class="table-wrapper"><table id="inventoryValueReportTable"><thead><tr><th>Category</th><th>Total Items</th><th>Total Stock Value</th></tr></thead><tbody></tbody></table></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div id="settings-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Settings</h2></div>
+        <div class="content-panel">
+          <div class="panel-header"><h2 class="panel-title">User Roles & Permissions</h2></div>
+          <div class="panel-body"><div class="table-wrapper"><table id="userRolesTable"><thead><tr><th>User</th><th>Email</th><th>Current Role</th><th style="width: 200px;">Change Role</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+        <div class="content-panel">
+          <div class="panel-header"><h2 class="panel-title">Suppliers</h2><button class="btn btn-primary btn-sm" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button></div>
+          <div class="panel-body"><div class="table-wrapper"><table id="suppliersTable"><thead><tr><th>Supplier Name</th><th>Contact Email</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="modal-container">
+  <!-- Add/Edit Item Modal -->
+  <div class="modal-overlay hidden" id="itemModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="itemModalTitle">Add New Item</h2><button class="modal-close-btn" onclick="closeModal('itemModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="itemForm"><input type="hidden" id="itemSku-edit"><div class="form-grid"><div class="form-group full-width"><label class="form-label">Item Name</label><input type="text" id="itemName" class="form-input" required></div><div class="form-group"><label class="form-label">SKU</label><input type="text" id="itemSku" class="form-input" required></div><div class="form-group"><label class="form-label">Category</label><select id="itemCategory" class="form-select"><option>Beverages</option><option>Food</option><option>Merchandise</option></select></div><div class="form-group"><label class="form-label">Price</label><input type="number" id="itemPrice" class="form-input" required step="0.01"></div><div class="form-group"><label class="form-label">Current Stock</label><input type="number" id="itemStock" class="form-input" required></div><div class="form-group"><label class="form-label">Reorder Point</label><input type="number" id="itemReorder" class="form-input" required></div><div class="form-group"><label class="form-label">Expiry Date</label><input type="date" id="itemExpiry" class="form-input"></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('itemModal')">Cancel</button><button class="btn btn-primary" onclick="saveItem()">Save Item</button></div></div></div>
+  <!-- Add/Edit Supplier Modal -->
+  <div class="modal-overlay hidden" id="supplierModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="supplierModalTitle">Add New Supplier</h2><button class="modal-close-btn" onclick="closeModal('supplierModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="supplierForm"><input type="hidden" id="supplierId-edit"><div class="form-group"><label class="form-label">Supplier Name</label><input type="text" id="supplierName" class="form-input" required></div><div class="form-group"><label class="form-label">Contact Email</label><input type="email" id="supplierEmail" class="form-input" required></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button><button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button></div></div></div>
+  <!-- Add/Edit PO Modal -->
+  <div class="modal-overlay hidden" id="poModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="poModalTitle">Create Purchase Order</h2><button class="modal-close-btn" onclick="closeModal('poModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="poForm"><input type="hidden" id="poNumber-edit"><div class="form-grid"><div class="form-group"><label class="form-label">Supplier</label><select id="poSupplier" class="form-select"></select></div><div class="form-group"><label class="form-label">Expected Delivery</label><input type="date" id="poDate" class="form-input"></div></div><hr style="border:none; border-top:1px solid var(--border-color); margin: 1.5rem 0;"><h3 style="margin-bottom: 1rem; font-weight:600;">Order Items</h3><div id="poItemsContainer"></div><button type="button" class="btn btn-secondary" onclick="addPoItem()"><i class="fas fa-plus"></i> Add Item</button></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('poModal')">Cancel</button><button class="btn btn-primary" onclick="savePO()">Save PO</button></div></div></div>
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay hidden" id="confirmModal"><div class="modal-container modal-sm"><div class="modal-header"><h2 class="modal-title" id="confirmModalTitle">Are you sure?</h2></div><div class="modal-body"><p id="confirmModalText"></p></div><div class="modal-footer"><button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Delete</button></div></div></div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="resources/js/inventory.js"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class ProPosApplication {
 
     public static void main(String[] args) {
+        // customer
         SpringApplication.run(ProPosApplication.class, args);
     }
 
