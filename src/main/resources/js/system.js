@@ -16,7 +16,7 @@ async function initializeAuthentication() {
 
     } catch (e) {
         console.warn("❌ No valid refresh token. Redirecting to login...");
-        window.location.href = 'http://localhost:63343/resources/signIn.html';
+        window.location.href = '../../signIn.html';
         return false;
     }
 }
@@ -231,7 +231,7 @@ async function checkServerStatus() {
             const refreshed = await refreshAccessToken();
             if (!refreshed) {
                 console.warn("❌ Refresh failed, redirecting to login.");
-                window.location.href = 'http://localhost:63343/resources/signIn.html';
+                window.location.href = '../../signIn.html';
                 return;
             }
             return await checkServerStatus(); // Retry with new token
@@ -458,7 +458,7 @@ function logout() {
         }).done(function() {
             console.log("✅ Logged out");
             accessToken = null; // clear access token too
-            window.location.href = 'http://localhost:63343/resources/signIn.html';
+            window.location.href = '../../signIn.html';
         });
 
     }
@@ -489,6 +489,30 @@ function openPaymentDrawer() {
 function closePaymentDrawer() {
     document.getElementById('paymentDrawer').classList.remove('active');
     resetPaymentDrawer();
+
+    // 🧹 When user cancels or closes payment, start fresh
+    resetPOS();
+}
+
+function resetPOS() {
+    // Clear cart and customer
+    cart = {};
+    selectedCustomer = null;
+
+    // Reset inputs and UI
+    document.getElementById('customerSearchInput').value = '';
+    document.getElementById('customerSearchInput').disabled = false;
+    document.getElementById('selectedCustomerInfo').innerHTML = '';
+    document.getElementById('walkInBtn').classList.remove('active');
+
+    // Rerender UI
+    renderAll();
+
+    // ✅ Optional: Scroll back to top of products grid for fresh start
+    const grid = document.getElementById('productsGrid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth' });
+
+    console.log("🧹 POS reset complete — ready for next sale!");
 }
 
 function resetPaymentDrawer() {
@@ -573,7 +597,35 @@ function completePayment() {
             : `${selectedPaymentMethod.charAt(0).toUpperCase() + selectedPaymentMethod.slice(1)} payment processed`;
 
     // Complete the actual checkout after animation
+    // setTimeout(() => {
+    //     const order = {
+    //         id: `ORD-${Date.now()}`,
+    //         date: new Date(),
+    //         customer: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
+    //         items: { ...cart },
+    //         total: currentTotal,
+    //         paymentMethod: selectedPaymentMethod,
+    //         cashReceived: selectedPaymentMethod === 'cash' ? cashAmount : currentTotal,
+    //         change: selectedPaymentMethod === 'cash' ? parseFloat(change) : 0
+    //     };
+    //
+    //     orderHistory.push(order);
+    //     Object.entries(cart).forEach(([id, qty]) => { if (products[id]) products[id].stock -= qty; });
+    //     cart = {};
+    //     selectedCustomer = null;
+    //     document.getElementById('customerSelect').value = '';
+    //     renderAll();
+    //
+    //     printThermalBill(order);
+    //
+    //     setTimeout(() => {
+    //         closePaymentDrawer();
+    //         showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
+    //         checkLowStock();
+    //     }, 1500);
+    // }, 2000);
     setTimeout(() => {
+        // 1️⃣ Create the order data while cart and customer still exist
         const order = {
             id: `ORD-${Date.now()}`,
             date: new Date(),
@@ -585,19 +637,36 @@ function completePayment() {
             change: selectedPaymentMethod === 'cash' ? parseFloat(change) : 0
         };
 
+        // 2️⃣ Print the bill BEFORE clearing anything
+        printThermalBill(order);
+
+        // 3️⃣ Update local records
         orderHistory.push(order);
-        Object.entries(cart).forEach(([id, qty]) => { if (products[id]) products[id].stock -= qty; });
+        Object.entries(cart).forEach(([id, qty]) => {
+            if (products[id]) products[id].stock -= qty;
+        });
+
+        // 4️⃣ Now safely clear cart and reset UI
         cart = {};
         selectedCustomer = null;
         document.getElementById('customerSelect').value = '';
         renderAll();
 
-        printThermalBill(order);
-
+        // 5️⃣ Close drawer and show success
+        // setTimeout(() => {
+        //     closePaymentDrawer();
+        //     showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
+        //     checkLowStock();
+        // }, 1500);
         setTimeout(() => {
             closePaymentDrawer();
             showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
             checkLowStock();
+
+            // 🧹 Redirect to a completely fresh cart view after short delay
+            setTimeout(() => {
+                resetPOS();
+            }, 800);
         }, 1500);
     }, 2000);
 }
@@ -754,7 +823,7 @@ async function ensureAccessToken() {
             console.log("♻️ Got new token:", accessToken);
         } catch (e) {
             console.warn("❌ Refresh failed. Redirecting to login...");
-            window.location.href = 'http://localhost:63343/resources/signIn.html';
+            window.location.href = '../../signIn.html';
         }
 }
 
@@ -881,7 +950,7 @@ function renderCustomerTable() {
             imageUrl = `http://localhost:8080/${imageUrl}`;
             console.log('🎦 Image Url:', imageUrl);
         } else if (!imageUrl || imageUrl === 'default-avatar.png') {
-            imageUrl = 'assets/default-avatar.png'; // local fallback
+            imageUrl = '/assets/default-avatar.png'; // local fallback
         }
 
         row.innerHTML = `
@@ -889,7 +958,7 @@ function renderCustomerTable() {
                 <img src="${imageUrl}" 
                      alt="${customer.name}" 
                      class="customer-avatar"
-                     onerror="this.src='assets/default-avatar.png'">
+                     onerror="this.src='/assets/default-avatar.png'">
             </td>
             <td>
                 <div class="customer-name">${customer.name}</div>
@@ -921,6 +990,75 @@ function renderCustomerDropdown() {
     select.value = currentValue;
 }
 
+function searchCustomerByPhone(query) {
+    const resultsContainer = document.getElementById('customerSearchResults');
+    if (!query.trim()) {
+        resultsContainer.classList.remove('active');
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    const matches = Object.entries(customers).filter(([id, c]) =>
+        c.phone && c.phone.includes(query)
+    );
+
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = `<div>No customers found</div>`;
+    } else {
+        resultsContainer.innerHTML = matches.map(([id, c]) =>
+            `<div onclick="selectCustomerFromSearch('${id}')">
+        ${c.name} - ${c.phone}
+      </div>`
+        ).join('');
+    }
+
+    resultsContainer.classList.add('active');
+}
+
+function selectCustomerFromSearch(id) {
+    const customer = customers[id];
+    if (!customer) return;
+    selectedCustomer = customer;
+    document.getElementById('selectedCustomerInfo').innerHTML = `
+    <div class="customer-info active">
+      <img src="${customer.image}" class="customer-info-avatar" alt="">
+      <div>
+        <div class="customer-name">${customer.name}</div>
+        <div class="customer-email">${customer.email}</div>
+        <div class="customer-phone">${customer.phone}</div>
+      </div>
+    </div>
+  `;
+    document.getElementById('customerSearchResults').classList.remove('active');
+    document.getElementById('customerSearchInput').value = customer.phone;
+}
+
+function toggleWalkInCustomer() {
+    const walkInBtn = document.getElementById('walkInBtn');
+    const searchInput = document.getElementById('customerSearchInput');
+
+    walkInBtn.classList.toggle('active');
+    const isActive = walkInBtn.classList.contains('active');
+
+    if (isActive) {
+        selectedCustomer = null;
+        searchInput.value = '';
+        searchInput.disabled = true;
+        document.getElementById('customerSearchResults').classList.remove('active');
+        document.getElementById('selectedCustomerInfo').innerHTML = `
+      <div class="customer-info active">
+        <img src="https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg"
+             class="customer-info-avatar" alt="">
+        <div>
+          <div class="customer-name">Walk-in Customer</div>
+        </div>
+      </div>
+    `;
+    } else {
+        searchInput.disabled = false;
+        document.getElementById('selectedCustomerInfo').innerHTML = '';
+    }
+}
 
 // ✅ Edit customer function - WITH DEBUGGING AND MODAL FALLBACK
 async function editCustomer(id) {

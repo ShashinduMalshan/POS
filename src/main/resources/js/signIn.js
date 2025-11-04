@@ -67,9 +67,9 @@ function showLoginSuccess(role) {
             successMsg.remove();
 
             if (userRole === 'ADMIN') {
-                window.location.href = 'http://localhost:63343/resources/inventory.html';
+                window.location.href = 'http://localhost:63342/ProPOS/src/main/inventory.html';
             } else if (userRole === 'CASHIER') {
-                window.location.href = 'http://localhost:63343/resources/system.html';
+                window.location.href = 'http://localhost:63342/ProPOS/src/main/system.html';
             }
 
 
@@ -95,12 +95,12 @@ function parseJwt(token) {
     }
 }
 
-function login(email, password) {
+function login(username, password) {
     return $.ajax({
         url: 'http://localhost:8080/auth/login',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ username: email, password: password }),
+        data: JSON.stringify({ username: username, password: password }),
         xhrFields: { withCredentials: true }, // to receive cookies
     }).then(res => {
         // auth.accessToken = res.accessToken;
@@ -159,19 +159,32 @@ $(document).ready(function () {
     $('#signinForm').on('submit', async function (e) {
         e.preventDefault();
 
-        const email = $('#email').val();
+        const username = $('#username').val();
         const password = $('#password').val();
 
-        if (!email || !password) {
+        if (!username || !password) {
             alert("Please fill in all fields");
             return;
         }
 
         try {
-            const role = await login(email, password);
+            const role = await login(username, password);
             showLoginSuccess(role); // your existing animation
         } catch (e) {
             console.error("Login error", e);
         }
     });
+
+    // Password toggle feature
+    $(document).ready(function() {
+        $('#togglePassword').on('click', function() {
+            const passwordField = $('#password');
+            const type = passwordField.attr('type') === 'password' ? 'text' : 'password';
+            passwordField.attr('type', type);
+
+            // Toggle the eye / eye-slash icon
+            $(this).toggleClass('fa-eye fa-eye-slash');
+        });
+    });
 });
+

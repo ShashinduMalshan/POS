@@ -6,7 +6,7 @@
   <title>Inventory Management - Pro+</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link type="text/css" rel="stylesheet" href="css/inventory.css">
+  <link type="text/css" rel="stylesheet" href="resources/css/inventory.css">
 </head>
 <body>
 
@@ -23,6 +23,8 @@
       <a class="nav-link" onclick="showPage('inventory')"><i class="fas fa-box-archive"></i> Item Catalog</a>
       <a class="nav-link" onclick="showPage('purchase-orders')"><i class="fas fa-truck-loading"></i> Purchase Orders</a>
       <a class="nav-link" onclick="showPage('reports')"><i class="fas fa-file-alt"></i> Reports</a>
+      <a class="nav-link" onclick="showPage('users')"><i class="fas fa-user"></i> Users</a>
+      <a class="nav-link" onclick="showPage('supplier')"><i class="fas fa-users"></i> Suppliers</a>
       <a class="nav-link" onclick="showPage('settings')"><i class="fas fa-cog"></i> Settings</a>
     </nav>
     <div class="sidebar-footer">
@@ -90,6 +92,134 @@
         </div>
       </div>
 
+
+      <!-- USERS PAGE -->
+        <div id="users-page" class="page-content" style="display: none;">
+
+      <div class="user-management-container">
+        <div class="header">
+          <h2>User Management</h2>
+          <button class="add-new-btn">
+            <i class="fas fa-plus"></i> Add New User
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="user-table">
+            <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email Address</th>
+              <th>Phone</th>
+              <th>Role</th>
+              <th>Hire Date</th>
+              <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Sample Row 1 -->
+            <tr>
+              <td>1</td>
+              <td>johndoe</td>
+              <td>john.doe@example.com</td>
+              <td>+94 77 123 4567</td>
+              <td>Admin</td>
+              <td>2024-01-15</td>
+              <td class="action-buttons">
+                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
+                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            <!-- Sample Row 2 -->
+            <tr>
+              <td>2</td>
+              <td>janesmith</td>
+              <td>jane.smith@example.com</td>
+              <td>+94 71 987 6543</td>
+              <td>Cashier</td>
+              <td>2024-03-22</td>
+              <td class="action-buttons">
+                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
+                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            <!-- Sample Row 3 -->
+            <tr>
+              <td>3</td>
+              <td>peterjones</td>
+              <td>peter.jones@example.com</td>
+              <td>+94 76 555 8888</td>
+              <td>Stock Manager</td>
+              <td>2023-11-10</td>
+              <td class="action-buttons">
+                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
+                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            <!-- More user rows will be added here dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- User Model -->
+      <div id="userModal" class="modal-overlay hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="modalTitle">Add New User</h3>
+            <button id="closeModalBtn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="userForm">
+              <!-- Hidden input to store User ID for editing -->
+              <input type="hidden" id="userId">
+
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone">
+              </div>
+              <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" required>
+                  <option value="Admin">Admin</option>
+                  <option value="Cashier">Cashier</option>
+                  <option value="Stock Manager">Stock Manager</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password">
+                <small>Leave blank if you don't want to change the password.</small>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+        </div>
+
+          <!-- SUPPLIERS PAGE -->
+      <div id="supplier-page" class="page-content" style="display: none;">
+        <div class="content-panel">
+          <div class="panel-header"><h1 class="panel-title">Suppliers</h1><button class="btn btn-primary btn-sm" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button></div>
+          <div class="panel-body"><div class="table-wrapper"><table id="suppliersTable"><thead><tr><th>Supplier Name</th><th>Contact Email</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+
+      </div>
+
       <!-- SETTINGS PAGE -->
       <div id="settings-page" class="page-content" style="display: none;">
         <div class="page-header"><h2>Settings</h2></div>
@@ -97,11 +227,9 @@
           <div class="panel-header"><h2 class="panel-title">User Roles & Permissions</h2></div>
           <div class="panel-body"><div class="table-wrapper"><table id="userRolesTable"><thead><tr><th>User</th><th>Email</th><th>Current Role</th><th style="width: 200px;">Change Role</th></tr></thead><tbody></tbody></table></div></div>
         </div>
-        <div class="content-panel">
-          <div class="panel-header"><h2 class="panel-title">Suppliers</h2><button class="btn btn-primary btn-sm" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button></div>
-          <div class="panel-body"><div class="table-wrapper"><table id="suppliersTable"><thead><tr><th>Supplier Name</th><th>Contact Email</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
-        </div>
+
       </div>
+
     </main>
   </div>
 </div>
@@ -119,6 +247,6 @@
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="js/inventory.js"></script>
+<script src="resources/js/inventory.js"></script>
 </body>
 </html>
