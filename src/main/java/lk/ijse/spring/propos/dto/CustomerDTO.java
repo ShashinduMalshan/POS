@@ -13,4 +13,7 @@ public class CustomerDTO {
     private String email;
     private String phone;
     private String imagePath;
+
+    public CustomerDTO(Long id, String name, String email, String phone) {
+    }
 }

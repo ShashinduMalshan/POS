@@ -39,7 +39,6 @@ public class CustomerService {
                 .name(customerDTO.getName())
                 .email(customerDTO.getEmail())
                 .phone(customerDTO.getPhone())
-                .imagePath(imagePath)
                 .build();
 
         customerRepository.save(customer);
@@ -60,8 +59,7 @@ public class CustomerService {
                 customer.getId(),
                 customer.getName(),
                 customer.getEmail(),
-                customer.getPhone(),
-                customer.getImagePath()
+                customer.getPhone()
         );
     }
 
@@ -75,34 +73,34 @@ public class CustomerService {
         Customer existingCustomer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
 
-        String imagePath = existingCustomer.getImagePath();
-
-        // If new image is provided, save it and delete old one
-        if (image != null && !image.isEmpty()) {
-            // Delete old image if exists
-            if (imagePath != null) {
-                try {
-                    Files.deleteIfExists(Paths.get(imagePath));
-                } catch (IOException e) {
-                    System.out.println("Could not delete old image: " + e.getMessage());
-                }
-            }
-
-            // Save new image
-            String uploadDir = "uploads/customers/";
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            Path path = Paths.get(uploadDir + image.getOriginalFilename());
-            Files.write(path, image.getBytes());
-            imagePath = path.toString();
-        }
+//        String imagePath = existingCustomer.getImagePath();
+//
+//        // If new image is provided, save it and delete old one
+//        if (image != null && !image.isEmpty()) {
+//            // Delete old image if exists
+//            if (imagePath != null) {
+//                try {
+//                    Files.deleteIfExists(Paths.get(imagePath));
+//                } catch (IOException e) {
+//                    System.out.println("Could not delete old image: " + e.getMessage());
+//                }
+//            }
+//
+//            // Save new image
+//            String uploadDir = "uploads/customers/";
+//            File dir = new File(uploadDir);
+//            if (!dir.exists()) dir.mkdirs();
+//
+//            Path path = Paths.get(uploadDir + image.getOriginalFilename());
+//            Files.write(path, image.getBytes());
+//            imagePath = path.toString();
+//        }
 
         // Update customer fields
         existingCustomer.setName(customerDTO.getName());
         existingCustomer.setEmail(customerDTO.getEmail());
         existingCustomer.setPhone(customerDTO.getPhone());
-        existingCustomer.setImagePath(imagePath);
+//        existingCustomer.setImagePath(imagePath);
 
         customerRepository.save(existingCustomer);
         return "Customer updated successfully!";
@@ -113,13 +111,13 @@ public class CustomerService {
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
 
         // Delete associated image if exists
-        if (customer.getImagePath() != null) {
-            try {
-                Files.deleteIfExists(Paths.get(customer.getImagePath()));
-            } catch (IOException e) {
-                System.out.println("Could not delete customer image: " + e.getMessage());
-            }
-        }
+//        if (customer.getImagePath() != null) {
+//            try {
+//                Files.deleteIfExists(Paths.get(customer.getImagePath()));
+//            } catch (IOException e) {
+//                System.out.println("Could not delete customer image: " + e.getMessage());
+//            }
+//        }
 
         customerRepository.deleteById(id);
         return "Customer deleted successfully!";
