@@ -35,6 +35,9 @@ public class Product {
     @Column(name = "reorder_level", nullable = false)
     private int reorderLevel;
 
+    @Column(name = "barcode", unique = true)
+    private String barcode;
+
     // Relationships
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
