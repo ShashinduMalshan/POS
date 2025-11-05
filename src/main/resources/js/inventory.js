@@ -402,3 +402,160 @@ function deleteSupplier(id) {
         renderAll();
     });
 }
+
+
+                                            //user management js
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Modal elements
+    const userModal = document.getElementById('userModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const modalTitle = document.getElementById('modalTitle');
+    const userForm = document.getElementById('userForm');
+
+    // Form fields
+    const userIdField = document.getElementById('userId');
+    const usernameField = document.getElementById('username');
+    const emailField = document.getElementById('email');
+    const phoneField = document.getElementById('phone');
+    const roleField = document.getElementById('role');
+    const passwordField = document.getElementById('password');
+
+    // Table body element to append new rows
+    const tableBody = document.querySelector('.user-table tbody');
+
+    // Function to open the modal
+    const openModal = () => {
+        userModal.classList.remove('hidden');
+    };
+
+    // Function to close the modal
+    const closeModal = () => {
+        userModal.classList.add('hidden');
+        userForm.reset(); // Clear all form fields
+        userIdField.value = ''; // Clear hidden user ID
+    };
+
+    // --- SETUP ACTION BUTTONS (IMPORTANT!) ---
+    // This function adds click events to ALL buttons in the table.
+    // We need to call this every time we add a new row.
+    const setupActionButtons = () => {
+
+        // --- Setup Edit Buttons ---
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                modalTitle.textContent = 'Edit User';
+                passwordField.removeAttribute('required');
+                passwordField.parentElement.querySelector('small').style.display = 'block';
+
+                const userRow = this.closest('tr');
+                const id = userRow.cells[0].textContent;
+                const username = userRow.cells[1].textContent;
+                const email = userRow.cells[2].textContent;
+                const phone = userRow.cells[3].textContent;
+                const role = userRow.cells[4].textContent;
+
+                userIdField.value = id;
+                usernameField.value = username;
+                emailField.value = email;
+                phoneField.value = phone;
+                roleField.value = role;
+
+                openModal();
+            });
+        });
+
+        // --- Setup Delete Buttons ---
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userRow = this.closest('tr');
+                const username = userRow.cells[1].textContent;
+                if (confirm(`Are you sure you want to delete "${username}"?`)) {
+                    userRow.remove();
+                    // In a real app, send a request to the server to delete
+                    console.log(`User ${username} deleted.`);
+                }
+            });
+        });
+    };
+
+    // Call it for the first time when the page loads
+    setupActionButtons();
+
+    // --- "ADD NEW USER" BUTTON ---
+    const addNewButton = document.querySelector('.add-new-btn');
+    addNewButton.addEventListener('click', () => {
+        userForm.reset();
+        userIdField.value = '';
+        modalTitle.textContent = 'Add New User';
+        passwordField.parentElement.querySelector('small').style.display = 'none';
+        passwordField.setAttribute('required', 'required');
+        openModal();
+    });
+
+    // --- EVENT LISTENERS FOR CLOSING MODAL ---
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    userModal.addEventListener('click', (event) => {
+        if (event.target === userModal) {
+            closeModal();
+        }
+    });
+
+    // --- FORM SUBMISSION LOGIC (THE MOST IMPORTANT PART) ---
+    userForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Stop the form from reloading the page
+
+        const id = userIdField.value;
+
+        if (id) {
+            // --- THIS IS AN UPDATE ---
+            // Find the correct row in the table using the hidden ID
+            const rowToUpdate = Array.from(tableBody.querySelectorAll('tr')).find(row => row.cells[0].textContent === id);
+            if (rowToUpdate) {
+                rowToUpdate.cells[1].textContent = usernameField.value;
+                rowToUpdate.cells[2].textContent = emailField.value;
+                rowToUpdate.cells[3].textContent = phoneField.value;
+                rowToUpdate.cells[4].textContent = roleField.value;
+            }
+            alert(`User "${usernameField.value}" updated successfully!`);
+
+        } else {
+            // --- THIS IS A CREATE (ADD NEW) ---
+            const lastRow = tableBody.querySelector('tr:last-child');
+            const lastId = lastRow ? parseInt(lastRow.cells[0].textContent) : 0;
+            const newId = lastId + 1;
+
+            // 1. Create a new row element
+            const newRow = tableBody.insertRow(); // A better way to add a row
+
+            // 2. Insert cells with data
+            newRow.innerHTML = `
+                <td>${newId}</td>
+                <td>${usernameField.value}</td>
+                <td>${emailField.value}</td>
+                <td>${phoneField.value}</td>
+                <td>${roleField.value}</td>
+                <td>${new Date().toISOString().split('T')[0]}</td> 
+                <td class="action-buttons">
+                    <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
+                    <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+
+            // 3. THIS IS THE CRITICAL STEP: Re-run setup for the new buttons
+            setupActionButtons();
+
+            // 4. Show the success message AFTER adding the data
+            alert(`New user "${usernameField.value}" created!`);
+        }
+
+        // 5. Finally, close the modal
+        closeModal();
+    });
+});
+
