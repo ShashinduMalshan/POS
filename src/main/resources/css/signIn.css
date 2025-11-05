@@ -126,3 +126,36 @@ body {
     .auth-container { flex-direction: column; max-width: 400px; min-height: auto; }
     .form-panel { padding: 2rem 1.5rem; }
 }
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: #333;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px 40px; /* space for icons */
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
