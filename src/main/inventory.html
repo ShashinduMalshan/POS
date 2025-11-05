@@ -25,10 +25,11 @@
       <a class="nav-link" onclick="showPage('reports')"><i class="fas fa-file-alt"></i> Reports</a>
       <a class="nav-link" onclick="showPage('users')"><i class="fas fa-user"></i> Users</a>
       <a class="nav-link" onclick="showPage('supplier')"><i class="fas fa-users"></i> Suppliers</a>
+      <a class="nav-link" onclick="showPage('item')"><i class="fas fa-box"></i> Inventory</a>
       <a class="nav-link" onclick="showPage('settings')"><i class="fas fa-cog"></i> Settings</a>
     </nav>
     <div class="sidebar-footer">
-      <a href="#" class="btn btn-secondary" style="width:100%;"><i class="fas fa-cash-register"></i> Go to POS</a>
+      <a href="system.html" class="btn btn-secondary" style="width:100%;"><i class="fas fa-cash-register"></i> Go to POS</a>
     </div>
   </aside>
 
@@ -219,6 +220,18 @@
         </div>
 
       </div>
+
+
+      <!-- INVENTORY PAGE -->
+      <div id="item -page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Inventory</h2></div>
+        <div class="content-panel">
+          <div class="panel-header"><h2 class="panel-title">Current Inventory Status</h2></div>
+          <div class="panel-body"><div class="table-wrapper"><table id="inventoryStatusTable"><thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Stock</th><th>Reorder Point</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+      </div>
+
+
 
       <!-- SETTINGS PAGE -->
       <div id="settings-page" class="page-content" style="display: none;">

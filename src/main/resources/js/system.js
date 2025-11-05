@@ -1,7 +1,18 @@
+
 // Global in-memory token
 let accessToken = null;
+let currentCashierName = 'Cashier'; // Default cashier name
+let globalNumpadTarget = null; // Target for the on-screen numpad
 
-// ✅ Try to refresh token when page loads
+// Utility to get initials from a name
+function getInitials(name) {
+    if (!name) return 'C';
+    const parts = name.split(' ');
+    if (parts.length === 1) return name.substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ✅ Try to refresh token and get user info when page loads
 async function initializeAuthentication() {
     try {
         const res = await $.ajax({
@@ -12,11 +23,38 @@ async function initializeAuthentication() {
 
         accessToken = res.accessToken; // keep in memory
         console.log("🔑 Session restored. New token:", accessToken);
+
+        // Now, fetch the user's details
+        try {
+            const userRes = await $.ajax({
+                url: 'http://localhost:8080/auth/me',
+                method: 'GET',
+                beforeSend: function (xhr) {
+                    if (accessToken) {
+                        xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                    }
+                },
+                xhrFields: { withCredentials: true }
+            });
+
+            // Assuming the response has a 'name' field
+            currentCashierName = userRes.name || 'Cashier';
+            console.log("👤 User identified:", currentCashierName);
+
+            // Update UI with user info
+            const userAvatar = document.querySelector('.user-avatar');
+            userAvatar.textContent = getInitials(currentCashierName);
+            userAvatar.title = currentCashierName;
+
+        } catch (userErr) {
+            console.warn("❌ Could not fetch user details, using default.", userErr);
+        }
+
         return true;
 
     } catch (e) {
         console.warn("❌ No valid refresh token. Redirecting to login...");
-        window.location.href = '../../signIn.html';
+        window.location.href = 'http://localhost:63342/ProPOS/src/main/signIn.html';
         return false;
     }
 }
@@ -28,8 +66,8 @@ $(document).ready(async function () {
     // If success, you can now safely call your APIs with accessToken.
     await loadAllCustomers();
     renderAll();
+    initializeNumpad(); // Initialize numpad listeners
 });
-
 
 function refreshAccessToken() {
     return $.ajax({
@@ -37,12 +75,13 @@ function refreshAccessToken() {
         method: 'POST',
         xhrFields: { withCredentials: true },
     }).then(res => {
-        localStorage.setItem("accessToken", res.accessToken);
+        localStorage.setItem("accessToken", res.accessToken); // Note: Storing in localStorage is less secure than memory-only
+        accessToken = res.accessToken; // Also update memory
         console.log("♻️ Token refreshed:", res.accessToken);
-        return true; // ✅ signal success
+        return true;
     }).catch(err => {
         console.warn("❌ Refresh failed, please login.");
-        return false; // ✅ signal failure
+        return false;
     });
 }
 
@@ -57,7 +96,6 @@ class ServerDownModal {
         this.retryText = document.getElementById('serverRetryText');
         this.retryCountdown = document.getElementById('serverRetryCountdown');
         this.attemptsList = document.getElementById('serverAttemptsList');
-
         this.isVisible = false;
         this.retryInterval = null;
         this.countdownInterval = null;
@@ -114,7 +152,6 @@ class ServerDownModal {
 
     async attemptConnection() {
         if (!this.isVisible) return;
-
         this.attempts++;
         this.retryText.textContent = `Attempting connection (${this.attempts}/${this.maxAttempts})...`;
         this.retrySpinner.classList.remove('hidden');
@@ -123,14 +160,12 @@ class ServerDownModal {
 
         try {
             const isServerUp = await this.serverCheckCallback();
-
             if (isServerUp) {
                 this.onConnectionSuccess();
                 return;
             }
 
             throw new Error('Server still down');
-
         } catch (error) {
             console.log('Connection attempt failed:', error);
             this.onConnectionFailed();
@@ -153,7 +188,6 @@ class ServerDownModal {
 
     onConnectionFailed() {
         this.retrySpinner.classList.add('hidden');
-
         if (this.attempts >= this.maxAttempts) {
             this.retryText.textContent = 'Max attempts reached. Please try again later.';
             return;
@@ -173,7 +207,6 @@ class ServerDownModal {
 
     updateAttemptsDisplay() {
         this.attemptsList.innerHTML = '';
-
         for (let i = 0; i < this.maxAttempts; i++) {
             const dot = document.createElement('div');
             dot.className = 'attempt-dot';
@@ -212,7 +245,8 @@ const serverModal = new ServerDownModal();
 // Server check function
 async function checkServerStatus() {
     try {
-        const token = localStorage.getItem('accessToken'); // ✅ read latest token
+        // Use the in-memory token
+        const token = accessToken;
         await $.ajax({
             url: 'http://localhost:8080/auth/me',
             method: 'GET',
@@ -231,7 +265,7 @@ async function checkServerStatus() {
             const refreshed = await refreshAccessToken();
             if (!refreshed) {
                 console.warn("❌ Refresh failed, redirecting to login.");
-                window.location.href = '../../signIn.html';
+                window.location.href = 'http://localhost:63342/ProPOS/src/main/signIn.html';
                 return;
             }
             return await checkServerStatus(); // Retry with new token
@@ -256,6 +290,90 @@ function hideServerDownModal() {
 
 //server down - end
 
+// --- [11] NUMPAD FUNCTIONS ---
+function initializeNumpad() {
+    document.querySelectorAll('.numpad-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const value = button.dataset.value;
+            handleNumpadClick(value);
+        });
+    });
+
+    // [10] Add keydown listener for 'K'
+    document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'k') {
+            e.preventDefault(); // Stop 'k' from being typed
+            toggleNumpad();
+        }
+    });
+}
+
+function toggleNumpad() {
+    const numpad = document.getElementById('numpad');
+
+    // [10] Positioning logic
+    if (numpad.classList.contains('hidden')) {
+        // About to show
+        if (globalNumpadTarget) {
+            const rect = globalNumpadTarget.getBoundingClientRect();
+            numpad.style.top = `${window.scrollY + rect.bottom + 5}px`; // 5px below
+            numpad.style.left = `${window.scrollX + rect.left}px`;
+            // Clear corner-fixed styles
+            numpad.style.bottom = '';
+            numpad.style.right = '';
+        } else {
+            // Default to corner if no target
+            numpad.style.top = '';
+            numpad.style.left = '';
+            numpad.style.bottom = '1rem';
+            numpad.style.right = '1rem';
+        }
+    }
+
+    numpad.classList.toggle('hidden');
+}
+
+function handleNumpadClick(value) {
+    if (!globalNumpadTarget) {
+        // If no target, flash the numpad toggle button
+        const btn = document.getElementById('numpad-toggle-btn');
+        btn.style.borderColor = 'var(--danger)';
+        btn.style.color = 'var(--danger)';
+        setTimeout(() => {
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }, 500);
+        return;
+    }
+
+    const input = globalNumpadTarget;
+
+    if (value === 'Done') {
+        toggleNumpad();
+        input.blur(); // Remove focus
+        globalNumpadTarget = null;
+        return;
+    }
+
+    if (value === 'C') {
+        input.value = '';
+    } else if (value === '<') {
+        input.value = input.value.slice(0, -1);
+    } else {
+        input.value += value;
+    }
+
+    // Dispatch events to trigger any oninput/onkeyup listeners
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('keyup', { bubbles: true }));
+}
+
+// This function is exposed to the window to be used in inline 'onfocus' attributes
+function setNumpadTarget(element) {
+    globalNumpadTarget = element;
+}
+
+
 // --- STATE MANAGEMENT ---
 let selectedPaymentMethod = null;
 let currentTotal = 0;
@@ -264,21 +382,22 @@ let selectedCustomer = null;
 let editingCustomerId = null;
 let editingItemId = null;
 let orderHistory = [];
-const defaultCustomerImage = 'https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg';
 const defaultItemImage = 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg';
-let products = { 'coffee-beans': { name: 'Premium Coffee Beans', price: 24.99, stock: 4, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=140&h=140&fit=crop' }, 'caramel-latte': { name: 'Iced Caramel Latte', price: 5.50, stock: 32, image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=140&h=140&fit=crop' }, 'artisan-chocolate': { name: 'Artisan Dark Chocolate', price: 12.50, stock: 3, image: 'https://images.unsplash.com/photo-1549007994-cb92caefc54b?w=140&h=140&fit=crop' }, 'gourmet-sandwich': { name: 'Gourmet Turkey Club', price: 15.99, stock: 22, image: 'https://images.unsplash.com/photo-1553909489-cd47e0ef937f?w=140&h=140&fit=crop' } };
+let products = { 'coffee-beans': { name: 'Premium Coffee Beans', price: 24.99, stock: 4, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=140&h=140&fit=crop' },
+    'caramel-latte': { name: 'Iced Caramel Latte', price: 5.50, stock: 32, image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=140&h=140&fit=crop' },
+    'artisan-chocolate': { name: 'Artisan Dark Chocolate', price: 12.50, stock: 3, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=140&h=140&fit=crop' },
+    'gourmet-sandwich': { name: 'Gourmet Turkey Club', price: 15.99, stock: 22, image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=140&h=140&fit=crop' } };
 let customers = {};
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
-    renderAll();
+    // renderAll() is called by $(document).ready()
     document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
     document.getElementById('billItems').addEventListener('change', handleBillQtyChange);
     checkLowStock();
     setInterval(checkLowStock, 30000); // Check every 30 seconds
 });
-
 // --- PAYMENT DRAWER FUNCTIONS ---
 
 // Add thermal bill printing function
@@ -288,7 +407,6 @@ function printThermalBill(orderData) {
         '_blank',
         'width=900,height=700,left=0,top=20px,scrollbars=yes,resizable=yes'
     );
-
     const printContent = `
         <!DOCTYPE html>
         <html>
@@ -297,68 +415,66 @@ function printThermalBill(orderData) {
     <style>
         /*@media print { @page { size: 80mm auto; margin: 0; } }*/
         @media print {
-      
-      @page {
-      size: auto;
-      margin: 10mm;
-    }
-    
-    body {
-      zoom: 2.5; /* Scale up the preview */
-    }
-
-
-    }
-    body { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; margin: 0; padding: 12px; width: auto; max-width: 400px; }
-    .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
-    .store-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-    .store-info { font-size: 11px; line-height: 1.4; }
-    .receipt-info { margin: 12px 0; font-size: 11px; background: #f5f5f5; padding: 8px; border-radius: 4px; }
-    .items { border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
-    .item { display: flex; justify-content: space-between; margin: 4px 0; }
-    .item-name { flex: 1; font-weight: bold; }
-    .item-qty { width: 40px; text-align: center; }
-    .item-price { width: 60px; text-align: right; font-weight: bold; }
-    .item-details { font-size: 10px; color: #666; margin-left: 0; margin-bottom: 4px; }
-    .totals { margin: 12px 0; }
-    .total-row { display: flex; justify-content: space-between; margin: 4px 0; padding: 2px 0; }
-    .total-row.grand { font-weight: bold; border-top: 2px dashed #000; padding-top: 8px; font-size: 16px; }
-    .payment-info { margin: 12px 0; border-top: 2px dashed #000; padding-top: 12px; background: #f9f9f9; padding: 12px; border-radius: 4px; }
-    .footer { text-align: center; margin-top: 20px; font-size: 11px; border-top: 2px dashed #000; padding-top: 12px; }
-    .thank-you { font-weight: bold; font-size: 14px; margin-bottom: 8px; }
-</style>
+            @page {
+                size: auto;
+                margin: 10mm;
+            }
+            body {
+                zoom: 2.5; /* Scale up the preview */
+            }
+        }
+        body { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.3; margin: 0; padding: 12px; width: auto; max-width: 400px; }
+        .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
+        .store-name { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+        .store-info { font-size: 11px; line-height: 1.4; }
+        .receipt-info { margin: 12px 0; font-size: 11px; background: #f5f5f5; padding: 8px; border-radius: 4px; }
+        .items { border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 12px; }
+        .item { display: flex; justify-content: space-between; margin: 4px 0; }
+        .item-name { flex: 1; font-weight: bold; }
+        .item-qty { width: 40px; text-align: center; }
+        .item-price { width: 60px; text-align: right; font-weight: bold; }
+        .item-details { font-size: 10px; color: #666; margin-left: 0; margin-bottom: 4px; }
+        .totals { margin: 12px 0; }
+        .total-row { display: flex; justify-content: space-between; margin: 4px 0; padding: 2px 0; }
+        .total-row.grand { font-weight: bold; border-top: 2px dashed #000; padding-top: 8px; font-size: 16px; }
+        .payment-info { margin: 12px 0; border-top: 2px dashed #000; padding-top: 12px; background: #f9f9f9; padding: 12px; border-radius: 4px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 11px; border-top: 2px dashed #000; padding-top: 12px; }
+        .thank-you { font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+    </style>
         </head>
         <body>
             <div class="header">
                 <div class="store-name">ProPOS Store</div>
                 <div class="store-info">123 Business St<br>City, State 12345<br>Tel: (555) 123-4567</div>
             </div>
-            
+
             <div class="receipt-info">
-                <div>Receipt #: ${orderData.id}</div>
-                <div>Date: ${orderData.date.toLocaleString()}</div>
-                <div>Cashier: Jane Doe</div>
+                 <div>Receipt #: ${orderData.id}</div>
+                <div>Date: ${new Date(orderData.date).toLocaleString()}</div>
+                <div>Cashier: ${orderData.cashier}</div>
                 <div>Customer: ${orderData.customer}</div>
             </div>
-            
+
             <div class="items">
-                ${Object.entries(orderData.items).map(([id, qty]) => {
+                 ${Object.entries(orderData.items).map(([id, qty]) => {
         const product = products[id];
+        // Handle case where product might not exist in current state (e.g., old order)
+        if (!product) return '';
         const itemTotal = product.price * qty;
         return `
                         <div class="item">
-                            <span class="item-name">${product.name}</span>
+                             <span class="item-name">${product.name}</span>
                             <span class="item-qty">${qty}x</span>
                             <span class="item-price">$${itemTotal.toFixed(2)}</span>
                         </div>
-                        <div style="font-size: 10px; color: #666; margin-left: 0;">
+                         <div style="font-size: 10px; color: #666; margin-left: 0;">
                             @ $${product.price.toFixed(2)} each
                         </div>
                     `;
     }).join('')}
             </div>
-            
-            <div class="totals">
+
+             <div class="totals">
                 <div class="total-row">
                     <span>Subtotal:</span>
                     <span>$${(orderData.total / 1.085).toFixed(2)}</span>
@@ -369,27 +485,28 @@ function printThermalBill(orderData) {
                 </div>
                 <div class="total-row grand">
                     <span>TOTAL:</span>
-                    <span>$${orderData.total.toFixed(2)}</span>
+                     <span>$${orderData.total.toFixed(2)}</span>
                 </div>
             </div>
-            
+
             <div class="payment-info">
                 <div class="total-row">
                     <span>Payment Method:</span>
-                    <span>${orderData.paymentMethod.toUpperCase()}</span>
+                     <span>${orderData.paymentMethod.toUpperCase()}</span>
                 </div>
-                ${orderData.paymentMethod === 'cash' ? `
+                ${orderData.paymentMethod === 'cash' ?
+        `
                     <div class="total-row">
                         <span>Cash Received:</span>
                         <span>$${orderData.cashReceived.toFixed(2)}</span>
                     </div>
-                    <div class="total-row">
+                     <div class="total-row">
                         <span>Change:</span>
                         <span>$${orderData.change.toFixed(2)}</span>
                     </div>
                 ` : ''}
-            </div>
-            
+             </div>
+
             <div class="footer">
                 <div class="thank-you">Thank You for Your Business!</div>
                 <div>Please Come Again</div>
@@ -401,7 +518,6 @@ function printThermalBill(orderData) {
         </body>
         </html>
     `;
-
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
@@ -419,14 +535,12 @@ function closeInventoryConfirmation() {
 
 function activateInventorySystem() {
     closeInventoryConfirmation();
-
     // Show success notification
     showNotification(
         'Inventory Management System activated successfully! Advanced features are now available.',
         'System Activated',
         'success'
     );
-
     // Open the current item modal (you can replace this later with actual inventory system)
     setTimeout(() => {
         openItemModal();
@@ -442,11 +556,8 @@ function logout() {
     if (confirm('Are you sure you want to logout?')) {
         // Clear all data
         cart = {};
-        selectedCustomer = null;
-        document.getElementById('customerSelect').value = '';
+        clearSelectedCustomer();
         renderAll();
-        alert('Logged out successfully!');
-        // You can add actual logout logic here
 
         $.ajax({
             url: 'http://localhost:8080/auth/logout',
@@ -458,9 +569,13 @@ function logout() {
         }).done(function() {
             console.log("✅ Logged out");
             accessToken = null; // clear access token too
-            window.location.href = '../../signIn.html';
+            window.location.href = 'http://localhost:63342/ProPOS/src/main/signIn.html';
+        }).fail(function() {
+            // Still log out locally even if server fails
+            console.warn("Server logout failed, but logging out locally.");
+            accessToken = null;
+            window.location.href = 'http://localhost:63342/ProPOS/src/main/signIn.html';
         });
-
     }
 }
 
@@ -489,30 +604,6 @@ function openPaymentDrawer() {
 function closePaymentDrawer() {
     document.getElementById('paymentDrawer').classList.remove('active');
     resetPaymentDrawer();
-
-    // 🧹 When user cancels or closes payment, start fresh
-    resetPOS();
-}
-
-function resetPOS() {
-    // Clear cart and customer
-    cart = {};
-    selectedCustomer = null;
-
-    // Reset inputs and UI
-    document.getElementById('customerSearchInput').value = '';
-    document.getElementById('customerSearchInput').disabled = false;
-    document.getElementById('selectedCustomerInfo').innerHTML = '';
-    document.getElementById('walkInBtn').classList.remove('active');
-
-    // Rerender UI
-    renderAll();
-
-    // ✅ Optional: Scroll back to top of products grid for fresh start
-    const grid = document.getElementById('productsGrid');
-    if (grid) grid.scrollIntoView({ behavior: 'smooth' });
-
-    console.log("🧹 POS reset complete — ready for next sale!");
 }
 
 function resetPaymentDrawer() {
@@ -533,6 +624,8 @@ function selectPaymentMethod(method) {
     if (method === 'cash') {
         document.getElementById('cashPaymentSection').classList.add('active');
         document.getElementById('cashAmountInput').focus();
+        // Check if amount is already valid
+        calculateChange();
     } else {
         document.getElementById('cashPaymentSection').classList.remove('active');
         document.getElementById('changeDisplay').classList.remove('active');
@@ -540,7 +633,6 @@ function selectPaymentMethod(method) {
     }
 }
 
-// Update the calculateChange function to include auto-scroll:
 function calculateChange() {
     const cashAmount = parseFloat(document.getElementById('cashAmountInput').value) || 0;
     const total = currentTotal;
@@ -584,52 +676,22 @@ function clearCashInput() {
 
 function completePayment() {
     if (!selectedPaymentMethod) return;
-
     // Show success animation
     document.getElementById('paymentSuccess').classList.add('active');
 
     const cashAmount = parseFloat(document.getElementById('cashAmountInput').value) || currentTotal;
     const change = selectedPaymentMethod === 'cash' ? (cashAmount - currentTotal).toFixed(2) : '0.00';
-
     document.getElementById('successDetails').textContent =
         selectedPaymentMethod === 'cash'
             ? `Cash: $${cashAmount.toFixed(2)} | Change: $${change}`
             : `${selectedPaymentMethod.charAt(0).toUpperCase() + selectedPaymentMethod.slice(1)} payment processed`;
-
     // Complete the actual checkout after animation
-    // setTimeout(() => {
-    //     const order = {
-    //         id: `ORD-${Date.now()}`,
-    //         date: new Date(),
-    //         customer: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
-    //         items: { ...cart },
-    //         total: currentTotal,
-    //         paymentMethod: selectedPaymentMethod,
-    //         cashReceived: selectedPaymentMethod === 'cash' ? cashAmount : currentTotal,
-    //         change: selectedPaymentMethod === 'cash' ? parseFloat(change) : 0
-    //     };
-    //
-    //     orderHistory.push(order);
-    //     Object.entries(cart).forEach(([id, qty]) => { if (products[id]) products[id].stock -= qty; });
-    //     cart = {};
-    //     selectedCustomer = null;
-    //     document.getElementById('customerSelect').value = '';
-    //     renderAll();
-    //
-    //     printThermalBill(order);
-    //
-    //     setTimeout(() => {
-    //         closePaymentDrawer();
-    //         showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
-    //         checkLowStock();
-    //     }, 1500);
-    // }, 2000);
     setTimeout(() => {
-        // 1️⃣ Create the order data while cart and customer still exist
         const order = {
             id: `ORD-${Date.now()}`,
-            date: new Date(),
+            date: new Date(), // Storing as Date object
             customer: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
+            cashier: currentCashierName,
             items: { ...cart },
             total: currentTotal,
             paymentMethod: selectedPaymentMethod,
@@ -637,41 +699,29 @@ function completePayment() {
             change: selectedPaymentMethod === 'cash' ? parseFloat(change) : 0
         };
 
-        // 2️⃣ Print the bill BEFORE clearing anything
-        printThermalBill(order);
-
-        // 3️⃣ Update local records
         orderHistory.push(order);
-        Object.entries(cart).forEach(([id, qty]) => {
-            if (products[id]) products[id].stock -= qty;
-        });
-
-        // 4️⃣ Now safely clear cart and reset UI
+        Object.entries(cart).forEach(([id, qty]) => { if (products[id]) products[id].stock -= qty; });
         cart = {};
-        selectedCustomer = null;
-        document.getElementById('customerSelect').value = '';
+        clearSelectedCustomer(); // Clear selected customer
         renderAll();
 
-        // 5️⃣ Close drawer and show success
-        // setTimeout(() => {
-        //     closePaymentDrawer();
-        //     showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
-        //     checkLowStock();
-        // }, 1500);
+        printThermalBill(order);
+
         setTimeout(() => {
             closePaymentDrawer();
             showNotification(`Payment of $${currentTotal.toFixed(2)} successful!`, 'Checkout Complete', 'success');
             checkLowStock();
-
-            // 🧹 Redirect to a completely fresh cart view after short delay
-            setTimeout(() => {
-                resetPOS();
-            }, 800);
         }, 1500);
     }, 2000);
 }
 
-function renderAll() { renderProducts(); renderCustomerDropdown(); updateBill(); updateCustomerInfo(); renderCustomerTable(); renderItemTable(); }
+function renderAll() {
+    renderProducts();
+    updateBill();
+    updateCustomerInfo();
+    renderCustomerTable();
+    renderItemTable();
+}
 
 // --- THEME MANAGEMENT ---
 function initializeTheme() {
@@ -743,9 +793,8 @@ function updateBill() {
     } else {
         billItems.innerHTML = Object.entries(cart).map(([id, quantity]) => {
             const product = products[id]; const itemTotal = product.price * quantity;
-            return `<div class="bill-item" data-product-id="${id}"><img src="${product.image}" class="bill-item-img" alt="${product.name}"><div class="item-details"><div class="item-name">${product.name}</div><div class="item-quantity-editor"><input type="number" class="bill-item-qty-input" value="${quantity}" min="1" max="${product.stock}" data-product-id="${id}"><span class="item-price-per-unit">@ $${product.price.toFixed(2)}</span></div></div><div class="item-total-price">$${itemTotal.toFixed(2)}</div><button class="remove-item" onclick="removeItemFromCart('${id}')" title="Remove"><i class="fas fa-trash-alt"></i></button></div>`;
+            return `<div class="bill-item" data-product-id="${id}"><img src="${product.image}" class="bill-item-img" alt="${product.name}"><div class="item-details"><div class="item-name">${product.name}</div><div class="item-quantity-editor"><input type="number" class="bill-item-qty-input" value="${quantity}" min="1" max="${product.stock}" data-product-id="${id}" onfocus="setNumpadTarget(this)"><span class="item-price-per-unit">@ $${product.price.toFixed(2)}</span></div></div><div class="item-total-price">$${itemTotal.toFixed(2)}</div><button class="remove-item" onclick="removeItemFromCart('${id}')" title="Remove"><i class="fas fa-trash-alt"></i></button></div>`;
         }).join('');
-
         // Auto-scroll to bottom of bill items when new items are added
         const panelBody = document.querySelector('.panel-body');
         setTimeout(() => {
@@ -768,13 +817,15 @@ function updateCheckoutButton() { document.getElementById('checkoutBtn').disable
 
 // --- INTERACTION LOGIC ---
 function updateQuantity(productId, change, cardElement) {
-    const product = products[productId]; if (!product) return;
+    const product = products[productId];
+    if (!product) return;
     const currentQty = cart[productId] || 0;
     const newQty = currentQty + change;
     if (newQty <= 0) { delete cart[productId]; }
     else if (newQty <= product.stock) {
         cart[productId] = newQty;
-        if (change > 0 && cardElement) { cardElement.classList.add('added-to-cart'); setTimeout(() => cardElement.classList.remove('added-to-cart'), 500); }
+        if (change > 0 && cardElement) { cardElement.classList.add('added-to-cart'); setTimeout(() => cardElement.classList.remove('added-to-cart'), 500);
+        }
     }
     renderProducts(); updateBill();
 }
@@ -807,49 +858,60 @@ function closeModal(modalId) { document.getElementById(modalId).classList.add('h
 function previewImage(input, previewId) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => { document.getElementById(previewId).src = e.target.result; }; reader.readAsDataURL(input.files[0]); } }
 function openCustomerModal() { openModal('customerModal'); }
 function closeCustomerModal() { closeModal('customerModal'); clearCustomerForm(); }
-function clearCustomerForm() { editingCustomerId = null; document.getElementById('editingCustomerId').value = ''; document.getElementById('customerNameInput').value = ''; document.getElementById('customerEmailInput').value = ''; document.getElementById('customerPhoneInput').value = ''; document.getElementById('customerPhotoInput').value = ''; document.getElementById('customerImagePreview').src = defaultCustomerImage; document.getElementById('customerModalTitle').textContent = 'Add New Customer'; }
+function clearCustomerForm() {
+    editingCustomerId = null;
+    document.getElementById('editingCustomerId').value = '';
+    document.getElementById('customerNameInput').value = '';
+    document.getElementById('customerEmailInput').value = '';
+    document.getElementById('customerPhoneInput').value = '';
+    document.getElementById('customerModalTitle').textContent = 'Add New Customer';
+}
 
 
 // ✅ Get a fresh token before doing anything
 async function ensureAccessToken() {
+    if (accessToken) {
+        // You might add logic here to check token expiry if you store it
+        // For now, we assume if it exists, it's good, or we refresh on 401
+        return;
+    }
 
-        try {
-            const res = await $.ajax({
-                url: 'http://localhost:8080/auth/refresh',
-                method: 'POST',
-                xhrFields: { withCredentials: true } // refresh cookie is sent automatically
-            });
-            accessToken = res.accessToken; // keep it only in memory
-            console.log("♻️ Got new token:", accessToken);
-        } catch (e) {
-            console.warn("❌ Refresh failed. Redirecting to login...");
-            window.location.href = '../../signIn.html';
-        }
+    try {
+        const res = await $.ajax({
+            url: 'http://localhost:8080/auth/refresh',
+            method: 'POST',
+            xhrFields: { withCredentials: true } // refresh cookie is sent automatically
+        });
+        accessToken = res.accessToken; // keep it only in memory
+        console.log("♻️ Got new token:", accessToken);
+    } catch (e) {
+        console.warn("❌ Refresh failed. Redirecting to login...");
+        window.location.href = 'http://localhost:63342/ProPOS/src/main/signIn.html';
+    }
 }
 
-// ✅ Save customer to DB
+// ✅ Save customer to DB (No Image)
 async function saveCustomer() {
     try {
         await ensureAccessToken(); // always make sure token exists
 
-        const formData = new FormData();
-        formData.append("customer", new Blob([JSON.stringify({
+        const customerData = {
             name: $('#customerNameInput').val(),
             email: $('#customerEmailInput').val(),
             phone: $('#customerPhoneInput').val()
-        })], { type: "application/json" }));
+        };
 
-        const fileInput = $('#customerPhotoInput')[0];
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-            formData.append("image", fileInput.files[0]);
+        // Basic validation
+        if (!customerData.name || !customerData.email) {
+            alert('Name and Email are required.');
+            return;
         }
 
         const response = await $.ajax({
             url: "http://localhost:8080/customer/save",
             type: "POST",
-            data: formData,
-            processData: false,
-            contentType: false,
+            data: JSON.stringify(customerData), // Send as JSON
+            contentType: "application/json", // Set content type
             beforeSend: function (xhr) {
                 if (accessToken) {
                     xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
@@ -857,13 +919,10 @@ async function saveCustomer() {
             },
             xhrFields: { withCredentials: true }
         });
-
         alert("✅ Customer saved successfully!");
         clearCustomerForm();
-        renderCustomerDropdown();
+        await loadAllCustomers(); // Reload all customers
         closeCustomerModal();
-
-        await loadAllCustomers();
 
     } catch (xhr) {
         if (xhr.status === 0) {
@@ -898,21 +957,21 @@ async function loadAllCustomers() {
             },
             xhrFields: { withCredentials: true }
         });
-
         // Convert array to object with index as key for compatibility
         customers = {};
         response.forEach((customer, index) => {
-            customers[index] = {
+            // Using phone as ID might be better if it's unique, but backend uses index/ID
+            // For now, we use the 'id' from the backend response
+            customers[customer.id] = { // Assuming backend sends an 'id'
+                id: customer.id,
                 name: customer.name,
                 email: customer.email,
-                phone: customer.phone,
-                image: customer.imagePath || 'default-avatar.png' // fallback image
+                phone: customer.phone
             };
         });
-
         console.log("✅ Customers loaded:", customers);
         renderCustomerTable();
-        renderCustomerDropdown();
+        // renderCustomerDropdown(); // No longer needed
 
     } catch (xhr) {
         if (xhr.status === 0) {
@@ -932,7 +991,7 @@ async function loadAllCustomers() {
     }
 }
 
-// ✅ Render customer table (updated to handle image paths correctly)
+// ✅ Render customer table (No Image)
 function renderCustomerTable() {
     const tableBody = document.getElementById('customerTableBody');
     if (!tableBody) {
@@ -943,31 +1002,15 @@ function renderCustomerTable() {
     tableBody.innerHTML = '';
     Object.entries(customers).forEach(([id, customer]) => {
         const row = document.createElement('tr');
-
-        // Handle image path - if it starts with uploads/, prepend server URL
-        let imageUrl = customer.image;
-        if (imageUrl && imageUrl.startsWith('uploads/')) {
-            imageUrl = `http://localhost:8080/${imageUrl}`;
-            console.log('🎦 Image Url:', imageUrl);
-        } else if (!imageUrl || imageUrl === 'default-avatar.png') {
-            imageUrl = '/assets/default-avatar.png'; // local fallback
-        }
-
         row.innerHTML = `
             <td>
-                <img src="${imageUrl}" 
-                     alt="${customer.name}" 
-                     class="customer-avatar"
-                     onerror="this.src='/assets/default-avatar.png'">
-            </td>
-            <td>
                 <div class="customer-name">${customer.name}</div>
-                <div class="customer-email-modal">${customer.email}</div>
+                <div class="customer-email-modal" style="font-size: 0.8rem; color: var(--text-secondary);">${customer.email}</div>
             </td>
             <td>${customer.phone}</td>
             <td class="action-buttons">
                 <button title="Edit" onclick="editCustomer('${id}')">
-                    <i class="fas fa-edit"></i>
+                     <i class="fas fa-edit"></i>
                 </button>
                 <button title="Delete" class="delete-btn" onclick="deleteCustomer('${id}')">
                     <i class="fas fa-trash-alt"></i>
@@ -978,198 +1021,257 @@ function renderCustomerTable() {
     });
 }
 
-// ✅ Render customer dropdown (for other forms that might need customer selection)
-function renderCustomerDropdown() {
-    const select = document.getElementById('customerSelect');
-    const currentValue = select.value;
-    select.innerHTML = '<option value="">Walk-in Customer</option>';
-    Object.entries(customers).forEach(([id, customer]) => {
-        const option = document.createElement('option');
-        option.value = id; option.textContent = customer.name; select.appendChild(option);
-    });
-    select.value = currentValue;
-}
-
-function searchCustomerByPhone(query) {
-    const resultsContainer = document.getElementById('customerSearchResults');
-    if (!query.trim()) {
-        resultsContainer.classList.remove('active');
-        resultsContainer.innerHTML = '';
-        return;
-    }
-
-    const matches = Object.entries(customers).filter(([id, c]) =>
-        c.phone && c.phone.includes(query)
-    );
-
-    if (matches.length === 0) {
-        resultsContainer.innerHTML = `<div>No customers found</div>`;
-    } else {
-        resultsContainer.innerHTML = matches.map(([id, c]) =>
-            `<div onclick="selectCustomerFromSearch('${id}')">
-        ${c.name} - ${c.phone}
-      </div>`
-        ).join('');
-    }
-
-    resultsContainer.classList.add('active');
-}
-
-function selectCustomerFromSearch(id) {
-    const customer = customers[id];
-    if (!customer) return;
-    selectedCustomer = customer;
-    document.getElementById('selectedCustomerInfo').innerHTML = `
-    <div class="customer-info active">
-      <img src="${customer.image}" class="customer-info-avatar" alt="">
-      <div>
-        <div class="customer-name">${customer.name}</div>
-        <div class="customer-email">${customer.email}</div>
-        <div class="customer-phone">${customer.phone}</div>
-      </div>
-    </div>
-  `;
-    document.getElementById('customerSearchResults').classList.remove('active');
-    document.getElementById('customerSearchInput').value = customer.phone;
-}
-
-function toggleWalkInCustomer() {
-    const walkInBtn = document.getElementById('walkInBtn');
-    const searchInput = document.getElementById('customerSearchInput');
-
-    walkInBtn.classList.toggle('active');
-    const isActive = walkInBtn.classList.contains('active');
-
-    if (isActive) {
-        selectedCustomer = null;
-        searchInput.value = '';
-        searchInput.disabled = true;
-        document.getElementById('customerSearchResults').classList.remove('active');
-        document.getElementById('selectedCustomerInfo').innerHTML = `
-      <div class="customer-info active">
-        <img src="https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg"
-             class="customer-info-avatar" alt="">
-        <div>
-          <div class="customer-name">Walk-in Customer</div>
-        </div>
-      </div>
-    `;
-    } else {
-        searchInput.disabled = false;
-        document.getElementById('selectedCustomerInfo').innerHTML = '';
-    }
-}
-
-// ✅ Edit customer function - WITH DEBUGGING AND MODAL FALLBACK
+// ✅ Edit customer function
 async function editCustomer(id) {
-    
     console.log('Going to edit customer with id: ', id);
 
-    console.log("=== EDIT CUSTOMER DEBUG ===");
-    console.log("Received ID:", id, typeof id);
-    console.log("All customers:", customers);
-    console.log("Customer exists?", customers[id]);
-
-    let response;
-
-    // Validate ID
-    if (!id || id === 0 || id === '0') {
-        console.error("Invalid customer ID:", id);
-        alert("Invalid customer ID. Please refresh the page and try again.");
+    const customer = customers[id];
+    if (!customer) {
+        alert('Could not find customer data.');
         return;
     }
 
-    try {
-        await ensureAccessToken();
+    // Fill the form
+    $('#editingCustomerId').val(id); // Set the hidden ID
+    $('#customerNameInput').val(customer.name);
+    $('#customerEmailInput').val(customer.email);
+    $('#customerPhoneInput').val(customer.phone);
 
-        console.log("Making request to:", `http://localhost:8080/customer/${id}`);
-
-        response = await $.ajax({
-            url: `http://localhost:8080/customer/${id}`,
-            type: "GET",
-            beforeSend: function (xhr) {
-                if (accessToken) {
-                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-                }
-            },
-            xhrFields: {withCredentials: true}
-        });
-
-        console.log("Edit response I'm here man trust me:", response);
-    } catch (xhr) {
-        console.error("Edit request failed:", xhr);
-
-    }
-
-        // Fill the form with existing customer data
-        $('#customerNameInput').val(response.name);
-        $('#customerEmailInput').val(response.email);
-        $('#customerPhoneInput').val(response.phone);
-    //
-    //     // Store the customer ID for updating
-    //     $('#customerForm').data('editing-id', id);
-    //
-    //     // Change the form title and button text
-    //     $('.modal-title').text('Edit Customer');
-    //     $('#saveCustomerBtn').text('Update Customer');
-    //
-    //     // Show the modal - multiple fallbacks
-    //     showCustomerModal();
-    //
-    // } catch (xhr) {
-    //     console.error("Edit request failed:", xhr);
-    //     if (xhr.status === 0) {
-    //         console.error("🚫 Server unreachable");
-    //         showServerDownModal();
-    //         return;
-    //     }
-    //     if (xhr.status === 401) {
-    //         console.warn("⚠️ Token expired, refreshing...");
-    //         accessToken = null;
-    //         await ensureAccessToken();
-    //         return await editCustomer(id);
-    //     } else {
-    //         console.error("⌛ Edit failed:", xhr);
-    //         alert("Error: " + (xhr.responseText || "Failed to load customer for editing"));
-    //     }
-    // }
-
+    $('#customerModalTitle').text('Edit Customer');
+    openCustomerModal();
 }
 
+// Dummy delete function - needs server implementation
+function deleteCustomer(id) {
+    const customerName = customers[id] ? customers[id].name : 'this customer';
+    if (confirm(`Are you sure you want to delete ${customerName}? This action requires server implementation.`)) {
+        console.warn(`Delete operation for customer ${id} is not implemented on the server.`);
+        // Optimistic delete from UI (remove for production)
+        delete customers[id];
+        renderAll();
+    }
+}
 
-//function saveCustomer() { const name = document.getElementById('customerNameInput').value.trim(); const email = document.getElementById('customerEmailInput').value.trim(); const phone = document.getElementById('customerPhoneInput').value.trim(); const imagePreview = document.getElementById('customerImagePreview').src; if (!name || !email) { alert('Name and Email are required.'); return; } const id = editingCustomerId || name.toLowerCase().replace(/\s+/g, '') + Date.now(); customers[id] = { name, email, phone, image: imagePreview }; renderAll(); closeCustomerModal(); }
-//function editCustomer(id) { const customer = customers[id]; if (!customer) return; clearCustomerForm(); editingCustomerId = id; document.getElementById('customerNameInput').value = customer.name; document.getElementById('customerEmailInput').value = customer.email; document.getElementById('customerPhoneInput').value = customer.phone; document.getElementById('customerImagePreview').src = customer.image; document.getElementById('customerModalTitle').textContent = 'Edit Customer'; openCustomerModal(); }
-//function deleteCustomer(id) { if (confirm(`Delete ${customers[id].name}?`)) { delete customers[id]; renderAll(); } }
 function openItemModal() { openModal('itemModal'); }
 function closeItemModal() { closeModal('itemModal'); clearItemForm(); }
-function clearItemForm() { editingItemId = null; document.getElementById('itemNameInput').value = ''; document.getElementById('itemPriceInput').value = ''; document.getElementById('itemStockInput').value = ''; document.getElementById('itemPhotoInput').value = ''; document.getElementById('itemImagePreview').src = defaultItemImage; document.getElementById('itemModalTitle').textContent = 'Add New Item'; }
-function saveItem() { const name = document.getElementById('itemNameInput').value.trim(); const price = parseFloat(document.getElementById('itemPriceInput').value); const stock = parseInt(document.getElementById('itemStockInput').value, 10); const imagePreview = document.getElementById('itemImagePreview').src; if (!name || isNaN(price) || isNaN(stock)) { alert('Please fill all fields correctly.'); return; } const id = editingItemId || name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''); products[id] = { name, price, stock, image: imagePreview }; renderAll(); closeItemModal(); }
-function editItem(id) { const item = products[id]; if (!item) return; clearItemForm(); editingItemId = id; document.getElementById('itemNameInput').value = item.name; document.getElementById('itemPriceInput').value = item.price; document.getElementById('itemStockInput').value = item.stock; document.getElementById('itemImagePreview').src = item.image; document.getElementById('itemModalTitle').textContent = 'Edit Item'; openItemModal(); }
-function deleteItem(id) { if (confirm(`Delete ${products[id].name}?`)) { delete products[id]; if (cart[id]) { delete cart[id]; } renderAll(); } }
-function openOrderHistoryModal() { renderOrderHistoryTable(); openModal('orderHistoryModal'); }
-function closeOrderHistoryModal() { closeModal('orderHistoryModal'); }
+function clearItemForm() {
+    editingItemId = null;
+    document.getElementById('itemNameInput').value = '';
+    document.getElementById('itemPriceInput').value = '';
+    document.getElementById('itemStockInput').value = '';
+    document.getElementById('itemPhotoInput').value = '';
+    document.getElementById('itemImagePreview').src = defaultItemImage;
+    document.getElementById('itemModalTitle').textContent = 'Add New Item';
+}
+function saveItem() {
+    const name = document.getElementById('itemNameInput').value.trim();
+    const price = parseFloat(document.getElementById('itemPriceInput').value);
+    const stock = parseInt(document.getElementById('itemStockInput').value, 10);
+    const imagePreview = document.getElementById('itemImagePreview').src;
+    if (!name || isNaN(price) || isNaN(stock)) {
+        alert('Please fill all fields correctly.');
+        return;
+    }
+    const id = editingItemId || name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    products[id] = { name, price, stock, image: imagePreview };
+    renderAll();
+    closeItemModal();
+}
+function editItem(id) {
+    const item = products[id];
+    if (!item) return;
+    clearItemForm();
+    editingItemId = id;
+    document.getElementById('itemNameInput').value = item.name;
+    document.getElementById('itemPriceInput').value = item.price;
+    document.getElementById('itemStockInput').value = item.stock;
+    document.getElementById('itemImagePreview').src = item.image;
+    document.getElementById('itemModalTitle').textContent = 'Edit Item';
+    openItemModal();
+}
+function deleteItem(id) {
+    if (confirm(`Delete ${products[id].name}?`)) {
+        delete products[id];
+        if (cart[id]) { delete cart[id]; }
+        renderAll();
+    }
+}
+
+// --- ORDER HISTORY MODAL ---
+function openOrderHistoryModal() {
+    renderOrderHistoryTable();
+    openModal('orderHistoryModal');
+}
+function closeOrderHistoryModal() {
+    closeModal('orderHistoryModal');
+}
+
 function renderOrderHistoryTable() {
     const tableBody = document.querySelector('#orderHistoryTable tbody');
     tableBody.innerHTML = '';
     if (orderHistory.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No order history found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No order history found.</td></tr>';
         return;
     }
     orderHistory.slice().reverse().forEach(order => {
         const row = document.createElement('tr');
+        const orderDate = new Date(order.date); // Ensure it's a Date object
         const itemCount = Object.values(order.items).reduce((sum, qty) => sum + qty, 0);
-        row.innerHTML = `<td>${order.id}</td><td>${order.date.toLocaleString()}</td><td>${order.customer}</td><td>${itemCount}</td><td>$${order.total.toFixed(2)}</td>`;
+        row.innerHTML = `
+                <td>${order.id}</td>
+                <td>${orderDate.toLocaleDateString()}</td>
+                <td>${orderDate.toLocaleTimeString()}</td>
+                <td>${order.customer}</td>
+                <td>${itemCount}</td>
+                <td>$${order.total.toFixed(2)}</td>
+                <td class="action-buttons">
+                    <button class="btn-print" title="Reprint Receipt" onclick="reprintOrder('${order.id}')">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </td>
+            `;
         tableBody.appendChild(row);
     });
 }
-function selectCustomer() { const customerId = document.getElementById('customerSelect').value; selectedCustomer = customerId ? { id: customerId, ...customers[customerId] } : null; updateCustomerInfo(); }
+
+function reprintOrder(orderId) {
+    const orderToPrint = orderHistory.find(o => o.id === orderId);
+    if (orderToPrint) {
+        printThermalBill(orderToPrint);
+    } else {
+        alert('Could not find order to reprint.');
+    }
+}
+
+function filterOrderHistory() {
+    const searchId = document.getElementById('orderSearchInput').value.toLowerCase();
+    const searchDate = document.getElementById('orderDateInput').value; // Format: YYYY-MM-DD
+
+    document.querySelectorAll('#orderHistoryTable tbody tr').forEach(row => {
+        const orderId = row.cells[0].textContent.toLowerCase();
+        const orderDate = new Date(row.cells[1].textContent).toISOString().split('T')[0];
+
+        const idMatch = orderId.includes(searchId);
+        const dateMatch = !searchDate || orderDate === searchDate;
+
+        row.style.display = (idMatch && dateMatch) ? '' : 'none';
+    });
+}
+
+function clearOrderFilters() {
+    document.getElementById('orderSearchInput').value = '';
+    document.getElementById('orderDateInput').value = '';
+    filterOrderHistory();
+}
+
+// --- [3] CUSTOMER ASSIGNMENT (BILL PANEL) ---
+
+// [3] Show suggestions as user types
+function showCustomerSuggestions(phoneFragment) {
+    const suggestionsBox = document.getElementById('customerSuggestions');
+    if (!phoneFragment.trim()) {
+        suggestionsBox.innerHTML = '';
+        suggestionsBox.classList.remove('active');
+        return;
+    }
+
+    const matchingCustomers = Object.values(customers).filter(c =>
+        c.phone && c.phone.includes(phoneFragment)
+    );
+
+    if (matchingCustomers.length > 0) {
+        suggestionsBox.innerHTML = matchingCustomers.map(c => `
+                <div class="suggestion-item" onclick="selectCustomerFromSuggestion('${c.id}')">
+                    <div class="suggestion-item-name">${c.name}</div>
+                    <div class="suggestion-item-phone">${c.phone}</div>
+                </div>
+            `).join('');
+        suggestionsBox.classList.add('active');
+    } else {
+        suggestionsBox.innerHTML = '<div class="suggestion-item">No matches found</div>';
+        suggestionsBox.classList.add('active');
+    }
+}
+
+// [4] Select a customer from the suggestion dropdown
+function selectCustomerFromSuggestion(customerId) {
+    selectedCustomer = customers[customerId];
+    if (!selectedCustomer) return;
+
+    updateCustomerInfo();
+    document.getElementById('customerSuggestions').classList.remove('active');
+    document.getElementById('customerSearchInput').value = selectedCustomer.phone; // Fill input
+    document.getElementById('walkinCustomerBtn').disabled = true;
+    document.getElementById('customerSearchInput').disabled = true;
+}
+
+// [5] Search for exact phone number on button click
+function searchCustomerByPhone() {
+    const phone = document.getElementById('customerSearchInput').value.trim();
+    if (!phone) {
+        alert('Please enter a phone number to search.');
+        return;
+    }
+
+    // Find customer
+    const foundCustomer = Object.values(customers).find(c => c.phone === phone);
+
+    if (foundCustomer) {
+        selectCustomerFromSuggestion(foundCustomer.id); // Use the same selection logic
+    } else {
+        alert('Customer not found with that phone number.');
+        clearSelectedCustomer();
+    }
+}
+
+function selectWalkInCustomer() {
+    selectedCustomer = { id: 'walkin', name: 'Walk-in Customer', email: '', phone: '' };
+    updateCustomerInfo();
+    document.getElementById('customerSearchInput').disabled = true;
+    document.getElementById('customerSearchInput').value = '';
+    document.getElementById('walkinCustomerBtn').disabled = true;
+    document.getElementById('customerSuggestions').classList.remove('active');
+}
+
+function clearSelectedCustomer() {
+    selectedCustomer = null;
+    updateCustomerInfo();
+    document.getElementById('customerSearchInput').disabled = false;
+    document.getElementById('customerSearchInput').value = '';
+    document.getElementById('walkinCustomerBtn').disabled = false;
+    document.getElementById('customerSuggestions').classList.remove('active');
+}
+
 function updateCustomerInfo() {
     const infoBox = document.getElementById('selectedCustomerInfo');
     if (selectedCustomer) {
-        infoBox.innerHTML = `<img src="${selectedCustomer.image}" alt="${selectedCustomer.name}" class="customer-info-avatar"><div><div class="customer-name">${selectedCustomer.name}</div><div class="customer-email">${selectedCustomer.email}</div></div>`;
+        infoBox.innerHTML = `
+                <div class="customer-info-icon"><i class="fas fa-user"></i></div>
+                <div>
+                    <div class="customer-name">${selectedCustomer.name}</div>
+                    ${selectedCustomer.email ? `<div class="customer-email">${selectedCustomer.email}</div>` : ''}
+                </div>
+                <button class="clear-customer-btn" onclick="clearSelectedCustomer()" title="Clear Customer">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
         infoBox.classList.add('active');
-    } else { infoBox.innerHTML = ``; infoBox.classList.remove('active'); }
+    } else {
+        infoBox.innerHTML = ``;
+        infoBox.classList.remove('active');
+    }
 }
+
+// --- CUSTOMER MODAL SEARCH ---
+function filterCustomerModalList(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    document.querySelectorAll('#customerTableBody tr').forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const contact = row.cells[1].textContent.toLowerCase();
+        row.style.display = (name.includes(term) || contact.includes(term)) ? '' : 'none';
+    });
+}
+
 function filterProducts(searchTerm) {
     const term = searchTerm.toLowerCase();
     document.querySelectorAll('.product-card').forEach(card => {
@@ -1191,9 +1293,6 @@ function renderItemTable() {
 
 
 // ===== MAKE FUNCTIONS GLOBALLY ACCESSIBLE =====
-// This is the key fix - expose all functions to the global window object
-// so they can be called from HTML onclick attributes
-
 window.processCheckout = processCheckout;
 window.logout = logout;
 window.openOrderHistoryModal = openOrderHistoryModal;
@@ -1224,5 +1323,17 @@ window.saveItem = saveItem;
 window.editItem = editItem;
 window.deleteItem = deleteItem;
 window.clearItemForm = clearItemForm;
-window.selectCustomer = selectCustomer;
 window.filterProducts = filterProducts;
+
+// New global functions
+window.setNumpadTarget = setNumpadTarget;
+window.toggleNumpad = toggleNumpad;
+window.searchCustomerByPhone = searchCustomerByPhone; // [6]
+window.selectWalkInCustomer = selectWalkInCustomer;
+window.clearSelectedCustomer = clearSelectedCustomer;
+window.filterCustomerModalList = filterCustomerModalList;
+window.reprintOrder = reprintOrder;
+window.filterOrderHistory = filterOrderHistory;
+window.clearOrderFilters = clearOrderFilters;
+window.showCustomerSuggestions = showCustomerSuggestions; // [3]
+window.selectCustomerFromSuggestion = selectCustomerFromSuggestion; // [4]
