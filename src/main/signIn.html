@@ -38,10 +38,10 @@
 
         <form id="signinForm">
             <div class="form-group">
-                <label for="email" class="form-label">Email Address</label>
+                <label for="username" class="form-label">User  Name</label>
                 <div class="input-wrapper">
-                    <input type="text" id="email" class="form-input" placeholder="you@example.com" required>
-                    <i class="input-icon fas fa-envelope"></i>
+                    <input type="text" id="username" class="form-input" placeholder="Jone Doe" required>
+                    <i class="input-icon fas fa-user"></i>
                 </div>
             </div>
 
@@ -50,6 +50,7 @@
                 <div class="input-wrapper">
                     <input type="password" id="password" class="form-input" placeholder="••••••••" required>
                     <i class="input-icon fas fa-lock"></i>
+                    <i class="toggle-password fas fa-eye" id="togglePassword"></i>
                 </div>
             </div>
 
@@ -61,10 +62,11 @@
         </form>
 
         <div class="form-footer">
-            <p>Don't have an account? <a href="http://localhost:63342/ProPOS/signUp.html" class="form-link">Sign Up</a></p>
+            <p>Don't have an account? <a href="http://localhost:63342/ProPOS/src/main/signUp.html" class="form-link">Sign Up</a></p>
         </div>
     </div>
 </div>
+
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script  src="resources/js/signIn.js"></script>
