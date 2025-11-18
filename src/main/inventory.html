@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inventory Management - Pro+</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link type="text/css" rel="stylesheet" href="resources/css/inventory.css">
 </head>
@@ -12,7 +12,6 @@
 
 <div class="app-layout">
   <div class="mobile-overlay" id="mobileOverlay"></div>
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo-icon"><i class="fas fa-boxes-stacked"></i></div>
@@ -20,20 +19,20 @@
     </div>
     <nav class="sidebar-nav">
       <a class="nav-link active" onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</a>
+      <a class="nav-link" onclick="showPage('transactions')"><i class="fas fa-dollar-sign"></i> Transactions</a>
       <a class="nav-link" onclick="showPage('inventory')"><i class="fas fa-box-archive"></i> Item Catalog</a>
       <a class="nav-link" onclick="showPage('purchase-orders')"><i class="fas fa-truck-loading"></i> Purchase Orders</a>
+      <a class="nav-link" onclick="showPage('suppliers')"><i class="fas fa-truck"></i> Suppliers</a>
+      <a class="nav-link" onclick="showPage('customers')"><i class="fas fa-users"></i> Customers</a>
       <a class="nav-link" onclick="showPage('reports')"><i class="fas fa-file-alt"></i> Reports</a>
-      <a class="nav-link" onclick="showPage('users')"><i class="fas fa-user"></i> Users</a>
-      <a class="nav-link" onclick="showPage('supplier')"><i class="fas fa-users"></i> Suppliers</a>
-      <a class="nav-link" onclick="showPage('item')"><i class="fas fa-box"></i> Inventory</a>
+      <a class="nav-link" onclick="showPage('users')"><i class="fas fa-user-cog"></i> Users</a>
       <a class="nav-link" onclick="showPage('settings')"><i class="fas fa-cog"></i> Settings</a>
     </nav>
     <div class="sidebar-footer">
-      <a href="system.html" class="btn btn-secondary" style="width:100%;"><i class="fas fa-cash-register"></i> Go to POS</a>
+      <a href="http://localhost:63342/ProPOS/src/main/system.html" class="btn btn-secondary" style="width:100%;"><i class="fas fa-cash-register"></i> Go to POS</a>
     </div>
   </aside>
 
-  <!-- MAIN WRAPPER -->
   <div class="main-wrapper">
     <header class="main-header">
       <div class="header-left">
@@ -51,212 +50,215 @@
     </header>
 
     <main class="main-content">
-      <!-- DASHBOARD PAGE -->
       <div id="dashboard-page" class="page-content">
         <div class="stat-cards-grid">
-          <div class="stat-card"><div class="stat-icon primary"><i class="fas fa-boxes-stacked"></i></div><div class="stat-info"><div class="value" id="totalItems">0</div><div class="label">Total Items</div></div></div>
-          <div class="stat-card"><div class="stat-icon success"><i class="fas fa-warehouse"></i></div><div class="stat-info"><div class="value" id="totalStock">0</div><div class="label">Total Stock Quantity</div></div></div>
-          <div class="stat-card"><div class="stat-icon warning"><i class="fas fa-triangle-exclamation"></i></div><div class="stat-info"><div class="value" id="lowStockItems">0</div><div class="label">Low Stock Items</div></div></div>
-          <div class="stat-card"><div class="stat-icon danger"><i class="fas fa-calendar-times"></i></div><div class="stat-info"><div class="value" id="expiredItems">0</div><div class="label">Expired Items</div></div></div>
+          <div class="stat-card" onclick="showDashboardDetails('dailyIncome')"><div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div><div class="stat-info"><div class="value" id="dailyIncome">$0.00</div><div class="label">Today's Income</div></div></div>
+          <div class="stat-card" onclick="showDashboardDetails('monthlyIncome')"><div class="stat-icon success"><i class="fas fa-calendar-week"></i></div><div class="stat-info"><div class="value" id="monthlyIncome">$0.00</div><div class="label">Monthly Income</div></div></div>
+          <div class="stat-card"><div class="stat-icon info"><i class="fas fa-receipt"></i></div><div class="stat-info"><div class="value" id="totalTransactions">0</div><div class="label">Total Transactions</div></div></div>
+          <div class="stat-card"><div class="stat-icon info"><i class="fas fa-users"></i></div><div class="stat-info"><div class="value" id="totalCustomers">0</div><div class="label">Total Customers</div></div></div>
+
+          <div class="stat-card"><div class="stat-icon primary"><i class="fas fa-boxes-stacked"></i></div><div class="stat-info"><div class="value" id="totalItems">0</div><div class="label">Total Items (SKUs)</div></div></div>
+          <div class="stat-card"><div class="stat-icon primary"><i class="fas fa-warehouse"></i></div><div class="stat-info"><div class="value" id="totalStock">0</div><div class="label">Total Stock Quantity</div></div></div>
+          <div class="stat-card" onclick="showDashboardDetails('lowStockItems')"><div class="stat-icon warning"><i class="fas fa-triangle-exclamation"></i></div><div class="stat-info"><div class="value" id="lowStockItems">0</div><div class="label">Low Stock Items</div></div></div>
+          <div class="stat-card" onclick="showDashboardDetails('expiredItems')"><div class="stat-icon danger"><i class="fas fa-calendar-times"></i></div><div class="stat-info"><div class="value" id="expiredItems">0</div><div class="label">Expired Items</div></div></div>
+
+          <div class="stat-card" onclick="showDashboardDetails('supplierSpend')"><div class="stat-icon danger"><i class="fas fa-money-bill-wave"></i></div><div class="stat-info"><div class="value" id="supplierSpend">$0.00</div><div class="label">Total Supplier Spend</div></div></div>
+          <div class="stat-card" onclick="showDashboardDetails('pendingOrders')"><div class="stat-icon warning"><i class="fas fa-clock"></i></div><div class="stat-info"><div class="value" id="pendingOrders">0</div><div class="label">Pending POs</div></div></div>
         </div>
-        <div class="content-panel"><div class="panel-header"><h2 class="panel-title">Inventory Value by Category</h2></div><div class="panel-body"><div class="chart-container"><canvas id="inventoryChart"></canvas></div></div></div>
+        <div class="content-panel">
+          <div class="panel-header"><h2 class="panel-title">Inventory Value by Category</h2></div>
+          <div class="panel-body"><div class="chart-container"><canvas id="inventoryChart"></canvas></div></div>
+        </div>
       </div>
 
-      <!-- INVENTORY PAGE -->
+      <div id="transactions-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Transactions</h2></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="transactionsTable"><thead><tr><th>ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+      </div>
+
       <div id="inventory-page" class="page-content" style="display: none;">
         <div class="page-header"><h2>Item Catalog</h2><button class="btn btn-primary" onclick="openItemModal()"><i class="fas fa-plus"></i> Add New Item</button></div>
-        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="inventoryTable"><thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Stock</th><th>Reorder Point</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="inventoryTable"><thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Stock</th><th>Unit Price</th><th>Reorder Point</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
       </div>
 
-      <!-- PURCHASE ORDERS PAGE -->
       <div id="purchase-orders-page" class="page-content" style="display: none;">
         <div class="page-header"><h2>Purchase Orders</h2><button class="btn btn-primary" onclick="openPOModal()"><i class="fas fa-plus"></i> Create PO</button></div>
         <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="poTable"><thead><tr><th>PO Number</th><th>Supplier</th><th>Date</th><th>Total Items</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
       </div>
 
-      <!-- REPORTS PAGE -->
+      <div id="suppliers-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Suppliers</h2><button class="btn btn-primary" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="suppliersTable"><thead><tr><th>Supplier Name</th><th>Contact</th><th>Email</th><th>Address</th><th>Supplied Items (SKUs)</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+      </div>
+
+      <div id="customers-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Customers</h2><button class="btn btn-primary" onclick="openCustomerModal()"><i class="fas fa-plus"></i> Add Customer</button></div>
+        <div class="content-panel"><div class="panel-body" style="padding: 0;"><div class="table-wrapper"><table id="customersTable"><thead><tr><th>Customer Name</th><th>Email</th><th>Phone</th><th>Total Spent</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
+      </div>
+
       <div id="reports-page" class="page-content" style="display: none;">
-        <div class="page-header"><h2>Reports</h2><button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button></div>
+        <div class="page-header">
+          <h2>Reports</h2>
+          <button class="btn btn-primary" onclick="printReportSection('reportContainer')">
+            <i class="fas fa-print"></i> Print All Reports
+          </button>
+        </div>
         <div class="content-panel">
           <div class="panel-body">
             <div class="report-container" id="reportContainer">
-              <h1 style="text-align:center; margin-bottom: 1rem;">Inventory Report</h1>
-              <p style="text-align:center; margin-bottom: 2rem; color: var(--text-muted)">Generated on: <span id="reportDate"></span></p>
+              <div class="report-header-all" style="margin-bottom: 2rem;">
+                <h1 style="text-align:center; margin-bottom: 1rem;">Comprehensive Report</h1>
+                <p style="text-align:center; color: var(--text-muted)">Generated on: <span id="reportDate"></span></p>
+              </div>
 
-              <h3 style="margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Low Stock Items</h3>
-              <div class="table-wrapper"><table id="lowStockReportTable"><thead><tr><th>Item</th><th>SKU</th><th>Current Stock</th><th>Reorder Point</th></tr></thead><tbody></tbody></table></div>
+              <div id="reportSalesSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Income & Sales Summary</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportSalesSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="report-grid">
+                  <div class="report-stat"><div class="report-stat-value" id="reportDailyIncome">$0.00</div><div class="report-stat-label">Today's Income</div></div>
+                  <div class="report-stat"><div class="report-stat-value" id="reportMonthlyIncome">$0.00</div><div class="report-stat-label">Monthly Income</div></div>
+                  <div class="report-stat"><div class="report-stat-value" id="reportTotalSales">0</div><div class="report-stat-label">Total Transactions</div></div>
+                </div>
+              </div>
 
-              <h3 style="margin-top: 2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Inventory Value</h3>
-              <div class="table-wrapper"><table id="inventoryValueReportTable"><thead><tr><th>Category</th><th>Total Items</th><th>Total Stock Value</th></tr></thead><tbody></tbody></table></div>
+              <div id="reportExpenseSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Expense Summary</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportExpenseSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="report-grid">
+                  <div class="report-stat"><div class="report-stat-value" id="reportSupplierSpend">$0.00</div><div class="report-stat-label">Total Supplier Spend</div></div>
+                </div>
+              </div>
+
+              <div id="reportPoSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Supplier Order Report (Purchase Orders)</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportPoSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="table-wrapper"><table id="poReportTable"><thead><tr><th>PO Number</th><th>Supplier</th><th>Date</th><th>Status</th><th>Total Value</th></tr></thead><tbody></tbody></table></div>
+              </div>
+
+              <div id="reportCustomerSalesSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Customer Sales Report (Transactions)</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportCustomerSalesSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="table-wrapper"><table id="salesReportTable"><thead><tr><th>Transaction ID</th><th>Customer</th><th>Date</th><th>Items</th><th>Total Value</th></tr></thead><tbody></tbody></table></div>
+              </div>
+
+              <div id="reportLowStockSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Low Stock Items</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportLowStockSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="table-wrapper"><table id="lowStockReportTable"><thead><tr><th>Item</th><th>SKU</th><th>Current Stock</th><th>Reorder Point</th></tr></thead><tbody></tbody></table></div>
+              </div>
+
+              <div id="reportValueSection" class="report-section">
+                <div class="report-section-header">
+                  <h3 class="report-section-title">Inventory Value by Category</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="printReportSection('reportValueSection')"><i class="fas fa-print"></i> Print Section</button>
+                </div>
+                <div class="table-wrapper"><table id="inventoryValueReportTable"><thead><tr><th>Category</th><th>Total Items</th><th>Total Stock Value</th></tr></thead><tbody></tbody></table></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-
-      <!-- USERS PAGE -->
-        <div id="users-page" class="page-content" style="display: none;">
-
-      <div class="user-management-container">
-        <div class="header">
-          <h2>User Management</h2>
-          <button class="add-new-btn">
-            <i class="fas fa-plus"></i> Add New User
-          </button>
-        </div>
-
-        <div class="table-container">
-          <table class="user-table">
-            <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Email Address</th>
-              <th>Phone</th>
-              <th>Role</th>
-              <th>Hire Date</th>
-              <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <!-- Sample Row 1 -->
-            <tr>
-              <td>1</td>
-              <td>johndoe</td>
-              <td>john.doe@example.com</td>
-              <td>+94 77 123 4567</td>
-              <td>Admin</td>
-              <td>2024-01-15</td>
-              <td class="action-buttons">
-                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
-                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-              </td>
-            </tr>
-            <!-- Sample Row 2 -->
-            <tr>
-              <td>2</td>
-              <td>janesmith</td>
-              <td>jane.smith@example.com</td>
-              <td>+94 71 987 6543</td>
-              <td>Cashier</td>
-              <td>2024-03-22</td>
-              <td class="action-buttons">
-                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
-                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-              </td>
-            </tr>
-            <!-- Sample Row 3 -->
-            <tr>
-              <td>3</td>
-              <td>peterjones</td>
-              <td>peter.jones@example.com</td>
-              <td>+94 76 555 8888</td>
-              <td>Stock Manager</td>
-              <td>2023-11-10</td>
-              <td class="action-buttons">
-                <button class="edit-btn" title="Edit"><i class="fas fa-pen-to-square"></i></button>
-                <button class="delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
-              </td>
-            </tr>
-            <!-- More user rows will be added here dynamically -->
-            </tbody>
-          </table>
+      <div id="users-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Users</h2><button class="btn btn-primary" onclick="openUserModal()"><i class="fas fa-plus"></i> Add User</button></div>
+        <div class="content-panel">
+          <div class="panel-body" style="padding: 0;">
+            <div class="table-wrapper">
+              <table id="usersTable">
+                <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Phone</th><th>Email</th><th>Hire Date</th><th>Password</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- User Model -->
-      <div id="userModal" class="modal-overlay hidden">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 id="modalTitle">Add New User</h3>
-            <button id="closeModalBtn" class="close-btn">&times;</button>
-          </div>
-          <div class="modal-body">
-            <form id="userForm">
-              <!-- Hidden input to store User ID for editing -->
-              <input type="hidden" id="userId">
+      <div id="settings-page" class="page-content" style="display: none;">
+        <div class="page-header"><h2>Settings</h2></div>
 
-              <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+        <div class="content-panel">
+          <div class="panel-header"><h2 class="panel-title">Application Settings</h2></div>
+          <div class="panel-body">
+            <form id="settingsForm">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Currency Symbol</label>
+                  <input type="text" id="settingCurrency" class="form-input" style="width: 100px;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Default Reorder Point</label>
+                  <input type="number" id="settingReorder" class="form-input" style="width: 100px;">
+                </div>
               </div>
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
-              </div>
-              <div class="form-group">
-                <label for="phone">Phone</label>
-                <input type="tel" id="phone" name="phone">
-              </div>
-              <div class="form-group">
-                <label for="role">Role</label>
-                <select id="role" name="role" required>
-                  <option value="Admin">Admin</option>
-                  <option value="Cashier">Cashier</option>
-                  <option value="Stock Manager">Stock Manager</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password">
-                <small>Leave blank if you don't want to change the password.</small>
-              </div>
-
-              <div class="modal-footer">
-                <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-              </div>
+              <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
             </form>
           </div>
         </div>
-      </div>
-        </div>
 
-          <!-- SUPPLIERS PAGE -->
-      <div id="supplier-page" class="page-content" style="display: none;">
-        <div class="content-panel">
-          <div class="panel-header"><h1 class="panel-title">Suppliers</h1><button class="btn btn-primary btn-sm" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button></div>
-          <div class="panel-body"><div class="table-wrapper"><table id="suppliersTable"><thead><tr><th>Supplier Name</th><th>Contact Email</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
-        </div>
-
-      </div>
-
-
-      <!-- INVENTORY PAGE -->
-      <div id="item -page" class="page-content" style="display: none;">
-        <div class="page-header"><h2>Inventory</h2></div>
-        <div class="content-panel">
-          <div class="panel-header"><h2 class="panel-title">Current Inventory Status</h2></div>
-          <div class="panel-body"><div class="table-wrapper"><table id="inventoryStatusTable"><thead><tr><th>Item</th><th>SKU</th><th>Category</th><th>Stock</th><th>Reorder Point</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
-        </div>
-      </div>
-
-
-
-      <!-- SETTINGS PAGE -->
-      <div id="settings-page" class="page-content" style="display: none;">
-        <div class="page-header"><h2>Settings</h2></div>
         <div class="content-panel">
           <div class="panel-header"><h2 class="panel-title">User Roles & Permissions</h2></div>
           <div class="panel-body"><div class="table-wrapper"><table id="userRolesTable"><thead><tr><th>User</th><th>Email</th><th>Current Role</th><th style="width: 200px;">Change Role</th></tr></thead><tbody></tbody></table></div></div>
         </div>
-
       </div>
 
     </main>
   </div>
 </div>
 
-<!-- MODALS -->
 <div id="modal-container">
-  <!-- Add/Edit Item Modal -->
-  <div class="modal-overlay hidden" id="itemModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="itemModalTitle">Add New Item</h2><button class="modal-close-btn" onclick="closeModal('itemModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="itemForm"><input type="hidden" id="itemSku-edit"><div class="form-grid"><div class="form-group full-width"><label class="form-label">Item Name</label><input type="text" id="itemName" class="form-input" required></div><div class="form-group"><label class="form-label">SKU</label><input type="text" id="itemSku" class="form-input" required></div><div class="form-group"><label class="form-label">Category</label><select id="itemCategory" class="form-select"><option>Beverages</option><option>Food</option><option>Merchandise</option></select></div><div class="form-group"><label class="form-label">Price</label><input type="number" id="itemPrice" class="form-input" required step="0.01"></div><div class="form-group"><label class="form-label">Current Stock</label><input type="number" id="itemStock" class="form-input" required></div><div class="form-group"><label class="form-label">Reorder Point</label><input type="number" id="itemReorder" class="form-input" required></div><div class="form-group"><label class="form-label">Expiry Date</label><input type="date" id="itemExpiry" class="form-input"></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('itemModal')">Cancel</button><button class="btn btn-primary" onclick="saveItem()">Save Item</button></div></div></div>
-  <!-- Add/Edit Supplier Modal -->
-  <div class="modal-overlay hidden" id="supplierModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="supplierModalTitle">Add New Supplier</h2><button class="modal-close-btn" onclick="closeModal('supplierModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="supplierForm"><input type="hidden" id="supplierId-edit"><div class="form-group"><label class="form-label">Supplier Name</label><input type="text" id="supplierName" class="form-input" required></div><div class="form-group"><label class="form-label">Contact Email</label><input type="email" id="supplierEmail" class="form-input" required></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button><button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button></div></div></div>
-  <!-- Add/Edit PO Modal -->
+  <div class="modal-overlay hidden" id="itemModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="itemModalTitle">Add New Item</h2><button class="modal-close-btn" onclick="closeModal('itemModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="itemForm"><input type="hidden" id="itemSku-edit"><div class="form-grid"><div class="form-group full-width"><label class="form-label">Item Name</label><input type="text" id="itemName" class="form-input" required></div><div class="form-group"><label class="form-label">SKU</label><input type="text" id="itemSku" class="form-input" required></div><div class="form-group"><label class="form-label">Category</label><select id="itemCategory" class="form-select"><option>Beverages</option><option>Food</option><option>Merchandise</option></select></div><div class="form-group"><label class="form-label">Price (Unit Price)</label><input type="number" id="itemPrice" class="form-input" required step="0.01"></div><div class="form-group"><label class="form-label">Supplier</label><select id="itemSupplier" class="form-select"><option value="">-- None --</option></select></div><div class="form-group"><label class="form-label">Current Stock</label><input type="number" id="itemStock" class="form-input" required></div><div class="form-group"><label class="form-label">Reorder Point</label><input type="number" id="itemReorder" class="form-input" required></div><div class="form-group"><label class="form-label">Expiry Date</label><input type="date" id="itemExpiry" class="form-input"></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('itemModal')">Cancel</button><button class="btn btn-primary" onclick="saveItem()">Save Item</button></div></div></div>
+
+  <div class="modal-overlay hidden" id="supplierModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="supplierModalTitle">Add New Supplier</h2><button class="modal-close-btn" onclick="closeModal('supplierModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="supplierForm"><input type="hidden" id="supplierId-edit"><div class="form-grid"><div class="form-group full-width"><label class="form-label">Supplier Name</label><input type="text" id="supplierName" class="form-input" required></div><div class="form-group"><label class="form-label">Contact Phone</label><input type="tel" id="supplierPhone" class="form-input"></div><div class="form-group"><label class="form-label">Contact Email</label><input type="email" id="supplierEmail" class="form-input" required></div><div class="form-group full-width"><label class="form-label">Address</label><input type="text" id="supplierAddress" class="form-input"></div></div>
+
+    <div class="sku-management"><div class="sku-management-header"><h3 class="panel-title">Supplier Products</h3></div><div class="sku-management-body"><div class="sku-input-group"><input type="text" id="supplierSkuInput" class="form-input" placeholder="Scan or type SKU..."><button type="button" class="btn btn-primary" id="addSupplierSkuBtn" onclick="addSupplierSku()"><i class="fas fa-plus"></i> Add SKU</button><div class="scanning-spinner" id="scannerSpinner"></div></div><div id="supplierSkuList"></div></div></div>
+  </form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button><button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button></div></div></div>
+
   <div class="modal-overlay hidden" id="poModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="poModalTitle">Create Purchase Order</h2><button class="modal-close-btn" onclick="closeModal('poModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="poForm"><input type="hidden" id="poNumber-edit"><div class="form-grid"><div class="form-group"><label class="form-label">Supplier</label><select id="poSupplier" class="form-select"></select></div><div class="form-group"><label class="form-label">Expected Delivery</label><input type="date" id="poDate" class="form-input"></div></div><hr style="border:none; border-top:1px solid var(--border-color); margin: 1.5rem 0;"><h3 style="margin-bottom: 1rem; font-weight:600;">Order Items</h3><div id="poItemsContainer"></div><button type="button" class="btn btn-secondary" onclick="addPoItem()"><i class="fas fa-plus"></i> Add Item</button></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('poModal')">Cancel</button><button class="btn btn-primary" onclick="savePO()">Save PO</button></div></div></div>
-  <!-- Confirmation Modal -->
+
+  <div class="modal-overlay hidden" id="customerModal"><div class="modal-container"><div class="modal-header"><h2 class="modal-title" id="customerModalTitle">Add New Customer</h2><button class="modal-close-btn" onclick="closeModal('customerModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="customerForm"><input type="hidden" id="customerId-edit"><div class="form-grid"><div class="form-group full-width"><label class="form-label">Customer Name</label><input type="text" id="customerName" class="form-input" required></div><div class="form-group"><label class="form-label">Email</label><input type="email" id="customerEmail" class="form-input"></div><div class="form-group"><label class="form-label">Phone</label><input type="tel" id="customerPhone" class="form-input"></div></div></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('customerModal')">Cancel</button><button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button></div></div></div>
+
+  <div class="modal-overlay hidden" id="transactionModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="transactionModalTitle">Add New Sale</h2><button class="modal-close-btn" onclick="closeModal('transactionModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><form id="transactionForm"><input type="hidden" id="transactionId-edit"><div class="form-grid"><div class="form-group"><label class="form-label">Customer</label><select id="transactionCustomer" class="form-select"></select></div><div class="form-group"><label class="form-label">Date</label><input type="date" id="transactionDate" class="form-input"></div></div><hr style="border:none; border-top:1px solid var(--border-color); margin: 1.5rem 0;"><h3 style="margin-bottom: 1rem; font-weight:600;">Sale Items</h3><div id="transactionItemsContainer"></div><button type="button" class="btn btn-secondary" onclick="addTransactionItem()"><i class="fas fa-plus"></i> Add Item</button><h3 style="margin-top: 1.5rem; text-align: right;">Total: <span id="transactionTotal">$0.00</span></h3></form></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('transactionModal')">Cancel</button><button class="btn btn-primary" onclick="saveTransaction()">Save Transaction</button></div></div></div>
+
   <div class="modal-overlay hidden" id="confirmModal"><div class="modal-container modal-sm"><div class="modal-header"><h2 class="modal-title" id="confirmModalTitle">Are you sure?</h2></div><div class="modal-body"><p id="confirmModalText"></p></div><div class="modal-footer"><button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Delete</button></div></div></div>
+
+  <div class="modal-overlay hidden" id="detailsModal"><div class="modal-container modal-lg"><div class="modal-header"><h2 class="modal-title" id="detailsModalTitle">Details</h2><button class="modal-close-btn" onclick="closeModal('detailsModal')"><i class="fas fa-times"></i></button></div><div class="modal-body" id="detailsModalBody" style="max-height: 60vh;"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('detailsModal')">Close</button></div></div></div>
+
+  <div class="modal-overlay hidden" id="userModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title" id="userModalTitle">Add User</h2>
+        <button class="modal-close-btn" onclick="closeModal('userModal')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="userForm">
+          <input type="hidden" id="userId-edit">
+          <div class="form-grid">
+            <div class="form-group full-width"><label class="form-label">Username</label><input type="text" id="userName" class="form-input" required></div>
+            <div class="form-group"><label class="form-label">Role</label><select id="userRole" class="form-select"><option>Admin</option><option>Manager</option><option>Staff</option></select></div>
+            <div class="form-group"><label class="form-label">Phone</label><input type="text" id="userPhone" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" id="userEmail" class="form-input" required></div>
+            <div class="form-group"><label class="form-label">Hire Date</label><input type="date" id="userHireDate" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Password</label><input type="text" id="userPassword" class="form-input" required></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('userModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
